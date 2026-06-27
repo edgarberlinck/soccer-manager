@@ -1,10 +1,9 @@
 package main
 
 import (
-	"database/sql"
-	"manager/game/engine"
+	"manager/game/internal/api"
 	"manager/game/internal/config"
-	"manager/game/internal/infrastructure/scheduler"
+	"net/http"
 
 	"github.com/joho/godotenv"
 )
@@ -14,12 +13,15 @@ func main() {
 
 	cfg := config.Load()
     
-    db, err := sql.Open("pgx", cfg.DatabaseURL)
-    if err != nil {
-        panic(err)
-    }
+    // db, err := sql.Open("pgx", cfg.DatabaseURL)
+    // if err != nil {
+    //     panic(err)
+    // }
 
-    e := engine.New()
-    s := scheduler.New(e, db) // I need to pass to parameters (see scheduler.go)
-    _ = s
+    // e := engine.New()
+    // s := scheduler.New(e, db) // I need to pass to parameters (see scheduler.go)
+    // _ = s
+    router := api.NewRouter()
+
+    http.ListenAndServe(":"+cfg.Port, router)
 }

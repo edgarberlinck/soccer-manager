@@ -5,8 +5,16 @@
 package repository
 
 import (
+	"database/sql"
+
 	"github.com/google/uuid"
 )
+
+type Club struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+	Name   string
+}
 
 type Player struct {
 	ID       uuid.UUID
@@ -15,4 +23,11 @@ type Player struct {
 	Pace     int16
 	Passing  int16
 	Shooting int16
+}
+
+type User struct {
+	ID           uuid.UUID
+	Username     string
+	PasswordHash string
+	Active       sql.NullBool
 }
