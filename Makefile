@@ -6,7 +6,7 @@ AIR := $(shell go env GOPATH)/bin/air
 MIGRATIONS_DIR=internal/infrastructure/database/migrations
 APP_ENTRY=./cmd/api
 
-.PHONY: migrate-up migrate-down sqlc start watch install-air
+.PHONY: migrate-up migrate-down sqlc start watch install-air test test-watch test-coverage
 
 migrate-up:
 	$(GOOSE) -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" up
@@ -30,3 +30,18 @@ watch:
 		echo "air is not installed. Run: make install-air"; \
 		exit 1; \
 	fi
+
+test:
+	go test ./...
+
+test-watch:
+	@if [ -x "$(AIR)" ]; then \
+		$(AIR) -build.cmd "go test ./..." -build.bin "/usr/bin/true"; \
+	else \
+		echo "air is not installed. Run: make install-air"; \
+		exit 1; \
+	fi
+
+test-coverage:
+	go test ./... -coverprofile=coverage.out
+	go tool cover -func=coverage.out

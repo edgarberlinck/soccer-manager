@@ -1,7 +1,7 @@
 package api
 
 import (
-	"bytes"
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
@@ -18,13 +18,13 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	resend "github.com/resend/resend-go/v2"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthHandler struct {
 	queries *repository.Queries
 	cfg     config.Config
-	http    *http.Client
 }
 
 type signUpRequest struct {
@@ -39,13 +39,6 @@ type signInRequest struct {
 
 type authResponse struct {
 	Token string `json:"token"`
-}
-
-type resendSendEmailRequest struct {
-	From    string   `json:"from"`
-	To      []string `json:"to"`
-	Subject string   `json:"subject"`
-	HTML    string   `json:"html"`
 }
 
 type link struct {
@@ -66,9 +59,6 @@ func NewAuthHandler(queries *repository.Queries, cfg config.Config) *AuthHandler
 	return &AuthHandler{
 		queries: queries,
 		cfg:     cfg,
-		http: &http.Client{
-			Timeout: 10 * time.Second,
-		},
 	}
 }
 
@@ -255,34 +245,16 @@ func (h *AuthHandler) sendVerificationEmail(email, token string) error {
 		return err
 	}
 
-	payload := resendSendEmailRequest{
+	client := resend.NewClient(h.cfg.ResendAPIKey)
+	payload := &resend.SendEmailRequest{
 		From:    h.cfg.ResendFromEmail,
 		To:      []string{email},
 		Subject: "Verify your Soccer Manager account",
-		HTML:    htmlBody,
+		Html:    htmlBody,
 	}
 
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Authorization", "Bearer "+h.cfg.ResendAPIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := h.http.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("resend returned status %d", resp.StatusCode)
+	if _, err := client.Emails.SendWithContext(context.Background(), payload); err != nil {
+		return fmt.Errorf("failed to send email with resend: %w", err)
 	}
 
 	return nil
