@@ -1,166 +1,163 @@
 package simulation
 
 import (
+	"fmt"
+	"hash/fnv"
 	"manager/game/internal/domain/club"
 	"manager/game/internal/domain/match"
+	"math"
+	"math/rand"
+
+	"github.com/google/uuid"
 )
 
-func PlayMatch(home, away club.Club) match.Result {
-	/*
-		Motor da partida
+const regulationTicks = 90
 
-Uma partida possui 90 ticks, representando os 90 minutos regulamentares.
+type PlayMatchTickInput struct {
+	MatchID     uuid.UUID
+	CurrentTick int
+	Seed        int64
+	HomeClubID  uuid.UUID
+	AwayClubID  uuid.UUID
+	HomeScore   int
+	AwayScore   int
+}
 
-No tick 1 é realizado o sorteio da posse inicial. O vencedor inicia com a bola no círculo central.
+type TickOutcome struct {
+	Tick        int
+	NextTick    int
+	EventType   string
+	Description string
+	HomeScore   int
+	AwayScore   int
+	IsFinished  bool
+}
 
-A partir do tick 2, a partida evolui em turnos. Em cada tick existe um time em posse da bola (ataque) e outro defendendo.
+func PlayMatchTick(input PlayMatchTickInput) TickOutcome {
+	tick := normalizeTick(input.CurrentTick)
+	rng := rand.New(rand.NewSource(seedForTick(input.Seed, input.MatchID, tick)))
 
-A simulação deve ser completamente determinística quando inicializada com a mesma seed de aleatoriedade.
-
-Todo elemento da partida possui posição conhecida em todos os ticks:
-
-Bola
-Jogadores
-Árbitro
-Bandeirinhas
-
-O campo deve possuir um sistema de coordenadas discretas, permitindo calcular deslocamentos, distância, linhas de passe, marcação e posicionamento.
-
-Cada jogador possui uma velocidade máxima de deslocamento por tick baseada em seus atributos.
-
-O árbitro também possui posição e deslocamento próprios, permanecendo próximo da jogada.
-
-Tomada de decisão
-
-Em cada tick o jogador que está com a posse escolhe uma ação.
-
-As ações disponíveis podem incluir:
-
-Passe curto
-Passe longo
-Enfiada
-Drible
-Chute
-Cruzamento
-Inversão
-Retenção da posse
-
-Os adversários também escolhem ações defensivas, como:
-
-Marcação
-Pressão
-Roubo de bola
-Interceptação
-Cobertura
-
-Cada decisão deve levar em consideração:
-
-atributos do jogador;
-posicionamento;
-estratégia do time;
-desgaste físico;
-moral da equipe;
-contexto da partida.
-Resolução
-
-Cada ação deve ser simulada múltiplas vezes (por exemplo, 10).
-
-O resultado final será obtido pela média das simulações.
-
-Exemplo:
-
-Jogador X tenta driblar.
-
-Após as simulações:
-
-sucesso: 7
-fracasso: 3
-
-Resultado final:
-
-Drible executado com sucesso.
-
-Eventos
-
-Durante a partida podem ocorrer eventos especiais:
-
-Gol
-Falta
-Cartão amarelo
-Cartão vermelho
-Escanteio
-Lateral
-Tiro de meta
-Pênalti
-Impedimento
-
-Cada evento altera o estado da partida.
-
-Persistência
-
-Cada ação realizada deve gerar um evento persistido.
-
-Exemplos:
-
-Jogador X tenta driblar Jogador Y.
-
-Jogador Y recupera a posse.
-
-Jogador Y lança para Jogador Z.
-
-Jogador Z cruza na área.
-
-Jogador K cabeceia.
-
-Defesa do goleiro.
-
-Os eventos representam o histórico completo da partida e devem permitir reconstruir qualquer momento do jogo.
-
-Tempos
-
-A partida é dividida em dois tempos.
-
-Tick 1 ao 45: primeiro tempo.
-Tick 46 ao 90: segundo tempo.
-
-Ao final do primeiro tempo ocorre a troca de lados.
-
-Agora uma opinião sobre a mecânica.
-
-Eu não faria "10 simulações por jogada".
-
-Faria um único cálculo probabilístico.
-
-Por exemplo:
-
-Chance de sucesso do drible
-
-= habilidade de drible
-+ velocidade
-+ moral
-- marcação
-- desgaste
-- pressão
-
-Resultado:
-
-83% de sucesso
-
-Depois:
-
-rand.Float64()
-
-Se saiu 0.72:
-
-sucesso.
-
-Se saiu 0.91:
-
-fracasso.
-	*/
-	
-	return match.Result{
-		HomeTeamScore: 1,
-		AwayTeamScore: 1,
+	outcome := TickOutcome{
+		Tick:       tick,
+		NextTick:   nextTick(tick),
+		HomeScore:  input.HomeScore,
+		AwayScore:  input.AwayScore,
+		IsFinished: tick >= regulationTicks,
 	}
+
+	if tick == 1 {
+		if rng.Intn(2) == 0 {
+			outcome.EventType = "kickoff_home"
+			outcome.Description = "Inicio de jogo: time da casa sai com a bola."
+		} else {
+			outcome.EventType = "kickoff_away"
+			outcome.Description = "Inicio de jogo: time visitante sai com a bola."
+		}
+		return outcome
+	}
+
+	if tick == 45 {
+		outcome.EventType = "halftime"
+		outcome.Description = fmt.Sprintf("Fim do primeiro tempo: %d x %d.", outcome.HomeScore, outcome.AwayScore)
+		return outcome
+	}
+
+	homeGoalChance, awayGoalChance := goalChances(input.HomeClubID, input.AwayClubID)
+	draw := rng.Float64()
+
+	if draw < homeGoalChance {
+		outcome.HomeScore++
+		outcome.EventType = "goal_home"
+		outcome.Description = fmt.Sprintf("Gol do mandante no tick %d. Placar: %d x %d.", tick, outcome.HomeScore, outcome.AwayScore)
+	} else if draw < homeGoalChance+awayGoalChance {
+		outcome.AwayScore++
+		outcome.EventType = "goal_away"
+		outcome.Description = fmt.Sprintf("Gol do visitante no tick %d. Placar: %d x %d.", tick, outcome.HomeScore, outcome.AwayScore)
+	} else {
+		outcome.EventType, outcome.Description = nonGoalEvent(rng, tick)
+	}
+
+	if tick == regulationTicks {
+		outcome.EventType = "fulltime"
+		outcome.Description = fmt.Sprintf("Fim de jogo: %d x %d.", outcome.HomeScore, outcome.AwayScore)
+		outcome.IsFinished = true
+	}
+
+	return outcome
+}
+
+func PlayMatch(home, away club.Club) match.Result {
+	_ = home
+	_ = away
+
+	return match.Result{
+		HomeTeamScore: 0,
+		AwayTeamScore: 0,
+	}
+}
+
+func normalizeTick(tick int) int {
+	if tick < 1 {
+		return 1
+	}
+	if tick > regulationTicks {
+		return regulationTicks
+	}
+	return tick
+}
+
+func nextTick(tick int) int {
+	if tick >= regulationTicks {
+		return regulationTicks
+	}
+	return tick + 1
+}
+
+func seedForTick(seed int64, matchID uuid.UUID, tick int) int64 {
+	hash := fnv.New64a()
+	_, _ = hash.Write(matchID[:])
+
+	base := int64(hash.Sum64())
+	return seed + base + int64(tick*7919)
+}
+
+func goalChances(homeClubID, awayClubID uuid.UUID) (float64, float64) {
+	homeSkill := float64(teamSkillFactor(homeClubID))
+	awaySkill := float64(teamSkillFactor(awayClubID))
+
+	homeChance := clampFloat(0.015+homeSkill-awaySkill/2, 0.005, 0.08)
+	awayChance := clampFloat(0.012+awaySkill-homeSkill/2, 0.005, 0.08)
+
+	return homeChance, awayChance
+}
+
+func teamSkillFactor(teamID uuid.UUID) float64 {
+	hash := fnv.New64a()
+	_, _ = hash.Write(teamID[:])
+
+	// Faixa pequena para manter resultados realistas e previsiveis.
+	return float64(hash.Sum64()%21-10) / 1000
+}
+
+func clampFloat(value, min, max float64) float64 {
+	return math.Min(max, math.Max(min, value))
+}
+
+func nonGoalEvent(rng *rand.Rand, tick int) (string, string) {
+	events := []struct {
+		kind string
+		desc string
+	}{
+		{kind: "short_pass", desc: "Passe curto para reorganizar a posse."},
+		{kind: "long_pass", desc: "Lancamento buscando profundidade."},
+		{kind: "dribble", desc: "Drible na faixa central."},
+		{kind: "cross", desc: "Cruzamento na area e afastamento da defesa."},
+		{kind: "tackle", desc: "Desarme limpo e recuperacao da bola."},
+		{kind: "interception", desc: "Interceptacao de passe no meio-campo."},
+		{kind: "corner", desc: "Escanteio cobrado sem conversao."},
+		{kind: "foul", desc: "Falta marcada e jogo reiniciado."},
+	}
+
+	picked := events[rng.Intn(len(events))]
+	return picked.kind, fmt.Sprintf("Tick %d: %s", tick, picked.desc)
 }

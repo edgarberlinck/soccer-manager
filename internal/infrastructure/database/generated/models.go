@@ -24,6 +24,43 @@ type Club struct {
 	UpdatedAt    time.Time
 }
 
+type Match struct {
+	ID             uuid.UUID
+	HomeClubID     uuid.UUID
+	AwayClubID     uuid.UUID
+	ChampionshipID uuid.NullUUID
+	Status         string
+	CurrentTick    int16
+	RandomSeed     int64
+	HomeScore      int32
+	AwayScore      int32
+	FinishedAt     sql.NullTime
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+type MatchEvent struct {
+	ID          int64
+	MatchID     uuid.UUID
+	Tick        int16
+	EventType   string
+	Description string
+	HomeScore   int32
+	AwayScore   int32
+	Payload     json.RawMessage
+	CreatedAt   time.Time
+}
+
+type MatchResult struct {
+	MatchID       uuid.UUID
+	HomeTeamScore int32
+	AwayTeamScore int32
+	WinnerClubID  uuid.NullUUID
+	LoserClubID   uuid.NullUUID
+	IsDraw        bool
+	CreatedAt     time.Time
+}
+
 type Player struct {
 	ID       uuid.UUID
 	Name     string

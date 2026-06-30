@@ -14,6 +14,10 @@ type Config struct {
 	AuthVerifyTokenTTLMinutes int
 	ResendAPIKey              string
 	ResendFromEmail           string
+	SimulationTickSeconds     int
+	SimulationTickCron        string
+	SimulationMaxParallel     int
+	SimulationMatchBatchSize  int
 }
 
 func Load() Config {
@@ -26,6 +30,10 @@ func Load() Config {
 		AuthVerifyTokenTTLMinutes: getEnvAsIntOrDefault("AUTH_VERIFY_TOKEN_TTL_MINUTES", 1440),
 		ResendAPIKey:              os.Getenv("RESEND_API_KEY"),
 		ResendFromEmail:           os.Getenv("RESEND_FROM_EMAIL"),
+		SimulationTickSeconds:     getEnvAsIntOrDefault("SIMULATION_TICK_SECONDS", 5),
+		SimulationTickCron:        os.Getenv("SIMULATION_TICK_CRON"),
+		SimulationMaxParallel:     getEnvAsIntOrDefault("SIMULATION_MAX_PARALLEL", 8),
+		SimulationMatchBatchSize:  getEnvAsIntOrDefault("SIMULATION_MATCH_BATCH_SIZE", 128),
 	}
 }
 
