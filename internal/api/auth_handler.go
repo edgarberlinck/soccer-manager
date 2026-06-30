@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"manager/game/internal/config"
 	repository "manager/game/internal/infrastructure/database/generated"
+	"manager/game/internal/infrastructure/mailer"
 	"net/http"
 	"net/mail"
 	"strings"
@@ -210,19 +211,7 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
-	claims, err := h.parseBearerClaims(r)
-	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	userIDRaw, ok := claims["sub"].(string)
-	if !ok || strings.TrimSpace(userIDRaw) == "" {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	userID, err := uuid.Parse(userIDRaw)
+	userID, err := parseUserIDFromBearerToken(r, h.cfg.AuthJWTSecret)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -252,42 +241,19 @@ func (h *AuthHandler) issueToken(userID uuid.UUID, email string) (string, error)
 	return token.SignedString([]byte(h.cfg.AuthJWTSecret))
 }
 
-func (h *AuthHandler) parseBearerClaims(r *http.Request) (jwt.MapClaims, error) {
-	authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
-	if !strings.HasPrefix(authHeader, "Bearer ") {
-		return nil, errors.New("missing bearer token")
-	}
-
-	rawToken := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
-	if rawToken == "" {
-		return nil, errors.New("missing token")
-	}
-
-	token, err := jwt.Parse(rawToken, func(token *jwt.Token) (interface{}, error) {
-		if token.Method != jwt.SigningMethodHS256 {
-			return nil, errors.New("unexpected signing method")
-		}
-		return []byte(h.cfg.AuthJWTSecret), nil
-	})
-	if err != nil || !token.Valid {
-		return nil, errors.New("invalid token")
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.New("invalid claims")
-	}
-
-	return claims, nil
-}
-
 func (h *AuthHandler) sendVerificationEmail(email, token string) error {
 	if h.cfg.ResendAPIKey == "" || h.cfg.ResendFromEmail == "" || h.cfg.AppBaseURL == "" {
 		return errors.New("resend/app configuration missing")
 	}
 
 	verifyURL := fmt.Sprintf("%s/auth/verify?token=%s", strings.TrimSuffix(h.cfg.AppBaseURL, "/"), token)
-	htmlBody := fmt.Sprintf("<p>Welcome to Soccer Manager.</p><p>Confirm your account by clicking <a href=\"%s\">this verification link</a>.</p>", verifyURL)
+	htmlBody, err := mailer.RenderVerificationEmail(mailer.VerificationTemplateData{
+		AppName:   "Soccer Manager",
+		VerifyURL: verifyURL,
+	})
+	if err != nil {
+		return err
+	}
 
 	payload := resendSendEmailRequest{
 		From:    h.cfg.ResendFromEmail,

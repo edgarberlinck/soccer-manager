@@ -6,15 +6,22 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type Club struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
-	Name   string
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	Name         string
+	ShortName    sql.NullString
+	Abbreviation sql.NullString
+	Continent    sql.NullString
+	Country      sql.NullString
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type Player struct {
@@ -36,4 +43,14 @@ type User struct {
 	VerificationTokenExpiresAt sql.NullTime
 	CreatedAt                  time.Time
 	UpdatedAt                  time.Time
+}
+
+type UserMetum struct {
+	UserID      uuid.UUID
+	FullName    sql.NullString
+	Country     sql.NullString
+	SocialLinks json.RawMessage
+	Metadata    json.RawMessage
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

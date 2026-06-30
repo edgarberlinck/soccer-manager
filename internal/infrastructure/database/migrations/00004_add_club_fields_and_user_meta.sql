@@ -1,0 +1,32 @@
+-- +goose Up
+ALTER TABLE clubs
+ADD COLUMN IF NOT EXISTS short_name TEXT,
+ADD COLUMN IF NOT EXISTS abbreviation TEXT,
+ADD COLUMN IF NOT EXISTS continent TEXT,
+ADD COLUMN IF NOT EXISTS country TEXT,
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+CREATE UNIQUE INDEX IF NOT EXISTS clubs_name_unique_ci ON clubs (LOWER(name));
+
+CREATE TABLE IF NOT EXISTS user_meta (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    full_name TEXT,
+    country TEXT,
+    social_links JSONB NOT NULL DEFAULT '{}'::jsonb,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- +goose Down
+DROP TABLE IF EXISTS user_meta;
+DROP INDEX IF EXISTS clubs_name_unique_ci;
+
+ALTER TABLE clubs
+DROP COLUMN IF EXISTS updated_at,
+DROP COLUMN IF EXISTS created_at,
+DROP COLUMN IF EXISTS country,
+DROP COLUMN IF EXISTS continent,
+DROP COLUMN IF EXISTS abbreviation,
+DROP COLUMN IF EXISTS short_name;

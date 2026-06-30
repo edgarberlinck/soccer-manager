@@ -7,14 +7,96 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
 
+const createClub = `-- name: CreateClub :one
+INSERT INTO clubs (
+	id,
+	user_id,
+	name,
+	short_name,
+	abbreviation,
+	continent,
+	country
+)
+VALUES (
+	$1,
+	$2,
+	$3,
+	$4,
+	$5,
+	$6,
+	$7
+)
+RETURNING id, user_id, name, short_name, abbreviation, continent, country, created_at, updated_at
+`
+
+type CreateClubParams struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	Name         string
+	ShortName    sql.NullString
+	Abbreviation sql.NullString
+	Continent    sql.NullString
+	Country      sql.NullString
+}
+
+func (q *Queries) CreateClub(ctx context.Context, arg CreateClubParams) (Club, error) {
+	row := q.db.QueryRowContext(ctx, createClub,
+		arg.ID,
+		arg.UserID,
+		arg.Name,
+		arg.ShortName,
+		arg.Abbreviation,
+		arg.Continent,
+		arg.Country,
+	)
+	var i Club
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.ShortName,
+		&i.Abbreviation,
+		&i.Continent,
+		&i.Country,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getClubByName = `-- name: GetClubByName :one
+SELECT id, user_id, name, short_name, abbreviation, continent, country, created_at, updated_at
+FROM clubs
+WHERE LOWER(name) = LOWER($1)
+LIMIT 1
+`
+
+func (q *Queries) GetClubByName(ctx context.Context, lower string) (Club, error) {
+	row := q.db.QueryRowContext(ctx, getClubByName, lower)
+	var i Club
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.ShortName,
+		&i.Abbreviation,
+		&i.Continent,
+		&i.Country,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserClubs = `-- name: GetUserClubs :many
-SELECT id, user_id, name 
-FROM clubs 
-where user_id = $1
+SELECT id, user_id, name, short_name, abbreviation, continent, country, created_at, updated_at
+FROM clubs
+WHERE user_id = $1
 `
 
 func (q *Queries) GetUserClubs(ctx context.Context, userID uuid.UUID) ([]Club, error) {
@@ -26,7 +108,17 @@ func (q *Queries) GetUserClubs(ctx context.Context, userID uuid.UUID) ([]Club, e
 	var items []Club
 	for rows.Next() {
 		var i Club
-		if err := rows.Scan(&i.ID, &i.UserID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.ShortName,
+			&i.Abbreviation,
+			&i.Continent,
+			&i.Country,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

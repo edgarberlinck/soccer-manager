@@ -11,20 +11,26 @@ import (
 
 func NewRouter(queries *repository.Queries, cfg config.Config) *chi.Mux {
 	r := chi.NewRouter()
+	authMiddleware := NewJWTAuthMiddleware(cfg)
 
 	clubHandler := NewClubHandler(queries)
 	authHandler := NewAuthHandler(queries, cfg)
 
-	r.Route("/health", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]string{"status": "OK"})
-		})
-	})
+	r.Group(func(r chi.Router) {
+		r.Use(authMiddleware)
 
-	r.Route("/clubs", func(r chi.Router) {
-		r.Get("/", clubHandler.ListClubs)
+		r.Route("/health", func(r chi.Router) {
+			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]string{"status": "OK"})
+			})
+		})
+
+		r.Route("/clubs", func(r chi.Router) {
+			r.Get("/", clubHandler.ListClubs)
+			r.Post("/", clubHandler.CreateClub)
+		})
 	})
 
 	r.Route("/auth", func(r chi.Router) {
@@ -32,7 +38,10 @@ func NewRouter(queries *repository.Queries, cfg config.Config) *chi.Mux {
 		r.Post("/signup", authHandler.SignUp)
 		r.Post("/signin", authHandler.SignIn)
 		r.Get("/verify", authHandler.VerifyEmail)
-		r.Get("/me", authHandler.Me)
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware)
+			r.Get("/me", authHandler.Me)
+		})
 	})
 
 	return r

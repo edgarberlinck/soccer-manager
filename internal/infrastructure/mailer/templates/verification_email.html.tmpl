@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Verify your account</title>
+  </head>
+  <body style="margin:0;padding:24px;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:12px;border:1px solid #e6ebf5;">
+      <tr>
+        <td style="padding:24px;">
+          <h1 style="margin:0 0 16px 0;font-size:24px;line-height:32px;color:#0f172a;">Welcome to {{ .AppName }}</h1>
+          <p style="margin:0 0 16px 0;color:#334155;font-size:16px;line-height:24px;">Thanks for signing up. Confirm your account by clicking the button below.</p>
+          <p style="margin:0 0 24px 0;">
+            <a href="{{ .VerifyURL }}" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;">Verify Email</a>
+          </p>
+          <p style="margin:0;color:#64748b;font-size:14px;line-height:20px;">If the button does not work, copy and paste this URL into your browser:</p>
+          <p style="margin:8px 0 0 0;font-size:14px;line-height:20px;word-break:break-all;">
+            <a href="{{ .VerifyURL }}" style="color:#0f172a;">{{ .VerifyURL }}</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
