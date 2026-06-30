@@ -8,10 +8,16 @@ import (
 	"github.com/google/uuid"
 )
 
-var ClubQueries *repository.Queries
+type ClubHandler struct {
+	queries *repository.Queries
+}
 
-func ListClubs(w http.ResponseWriter, r *http.Request) {
-	if ClubQueries == nil {
+func NewClubHandler(queries *repository.Queries) *ClubHandler {
+	return &ClubHandler{queries: queries}
+}
+
+func (h *ClubHandler) ListClubs(w http.ResponseWriter, r *http.Request) {
+	if h.queries == nil {
 		http.Error(w, "database queries not initialized", http.StatusInternalServerError)
 		return
 	}
@@ -28,7 +34,7 @@ func ListClubs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clubs, err := ClubQueries.GetUserClubs(r.Context(), userID)
+	clubs, err := h.queries.GetUserClubs(r.Context(), userID)
 	if err != nil {
 		http.Error(w, "failed to list clubs", http.StatusInternalServerError)
 		return

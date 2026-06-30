@@ -6,6 +6,7 @@ package repository
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -26,8 +27,13 @@ type Player struct {
 }
 
 type User struct {
-	ID           uuid.UUID
-	Username     string
-	PasswordHash string
-	Active       sql.NullBool
+	ID                         uuid.UUID
+	Username                   string
+	PasswordHash               string
+	Active                     bool
+	EmailVerifiedAt            sql.NullTime
+	VerificationToken          sql.NullString
+	VerificationTokenExpiresAt sql.NullTime
+	CreatedAt                  time.Time
+	UpdatedAt                  time.Time
 }
