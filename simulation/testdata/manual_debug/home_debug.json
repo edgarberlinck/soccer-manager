@@ -1,0 +1,247 @@
+{
+  "team_name": "Aurora FC",
+  "players": [
+    {
+      "name": "Ivan Rocha",
+      "role": "goalkeeper",
+      "position": "Goleiro",
+      "attributes": {
+        "Pace": 58,
+        "Passing": 72,
+        "Shooting": 36,
+        "Altura": 191,
+        "Peso": 85,
+        "Impulso": 79,
+        "Explosao": 70,
+        "Fisico": 80,
+        "FisicalStatus": 88,
+        "Cabeceio": 52,
+        "Cruzamento": 44,
+        "Habilidade": 68,
+        "Finalizacao": 35,
+        "Dominio": 74,
+        "Temperamento": 81
+      }
+    },
+    {
+      "name": "Caio Lima",
+      "role": "defender",
+      "position": "Lateral Esquerdo",
+      "attributes": {
+        "Pace": 74,
+        "Passing": 70,
+        "Shooting": 48,
+        "Altura": 178,
+        "Peso": 74,
+        "Impulso": 71,
+        "Explosao": 76,
+        "Fisico": 74,
+        "FisicalStatus": 84,
+        "Cabeceio": 68,
+        "Cruzamento": 77,
+        "Habilidade": 72,
+        "Finalizacao": 46,
+        "Dominio": 73,
+        "Temperamento": 76
+      }
+    },
+    {
+      "name": "Breno Sousa",
+      "role": "defender",
+      "position": "Zagueiro",
+      "attributes": {
+        "Pace": 66,
+        "Passing": 67,
+        "Shooting": 40,
+        "Altura": 188,
+        "Peso": 82,
+        "Impulso": 77,
+        "Explosao": 67,
+        "Fisico": 81,
+        "FisicalStatus": 85,
+        "Cabeceio": 79,
+        "Cruzamento": 49,
+        "Habilidade": 64,
+        "Finalizacao": 42,
+        "Dominio": 68,
+        "Temperamento": 78
+      }
+    },
+    {
+      "name": "Dario Melo",
+      "role": "defender",
+      "position": "Zagueiro",
+      "attributes": {
+        "Pace": 64,
+        "Passing": 69,
+        "Shooting": 42,
+        "Altura": 186,
+        "Peso": 80,
+        "Impulso": 75,
+        "Explosao": 65,
+        "Fisico": 79,
+        "FisicalStatus": 87,
+        "Cabeceio": 78,
+        "Cruzamento": 46,
+        "Habilidade": 65,
+        "Finalizacao": 43,
+        "Dominio": 69,
+        "Temperamento": 80
+      }
+    },
+    {
+      "name": "Enzo Prado",
+      "role": "fullback",
+      "position": "Lateral Direito",
+      "attributes": {
+        "Pace": 77,
+        "Passing": 71,
+        "Shooting": 50,
+        "Altura": 176,
+        "Peso": 73,
+        "Impulso": 72,
+        "Explosao": 78,
+        "Fisico": 73,
+        "FisicalStatus": 84,
+        "Cabeceio": 64,
+        "Cruzamento": 78,
+        "Habilidade": 74,
+        "Finalizacao": 49,
+        "Dominio": 75,
+        "Temperamento": 74
+      }
+    },
+    {
+      "name": "Felipe Neri",
+      "role": "midfielder",
+      "position": "Volante",
+      "attributes": {
+        "Pace": 69,
+        "Passing": 78,
+        "Shooting": 58,
+        "Altura": 181,
+        "Peso": 76,
+        "Impulso": 70,
+        "Explosao": 69,
+        "Fisico": 77,
+        "FisicalStatus": 86,
+        "Cabeceio": 68,
+        "Cruzamento": 67,
+        "Habilidade": 76,
+        "Finalizacao": 59,
+        "Dominio": 79,
+        "Temperamento": 82
+      }
+    },
+    {
+      "name": "Guilherme Reis",
+      "role": "midfielder",
+      "position": "Meia Central",
+      "attributes": {
+        "Pace": 71,
+        "Passing": 80,
+        "Shooting": 63,
+        "Altura": 179,
+        "Peso": 75,
+        "Impulso": 68,
+        "Explosao": 71,
+        "Fisico": 72,
+        "FisicalStatus": 85,
+        "Cabeceio": 65,
+        "Cruzamento": 73,
+        "Habilidade": 80,
+        "Finalizacao": 64,
+        "Dominio": 82,
+        "Temperamento": 79
+      }
+    },
+    {
+      "name": "Heitor Vale",
+      "role": "midfielder",
+      "position": "Ala Esquerda",
+      "attributes": {
+        "Pace": 79,
+        "Passing": 75,
+        "Shooting": 64,
+        "Altura": 174,
+        "Peso": 70,
+        "Impulso": 69,
+        "Explosao": 81,
+        "Fisico": 69,
+        "FisicalStatus": 83,
+        "Cabeceio": 58,
+        "Cruzamento": 80,
+        "Habilidade": 81,
+        "Finalizacao": 65,
+        "Dominio": 80,
+        "Temperamento": 75
+      }
+    },
+    {
+      "name": "Igor Teles",
+      "role": "forward",
+      "position": "Ala Direita",
+      "attributes": {
+        "Pace": 82,
+        "Passing": 72,
+        "Shooting": 70,
+        "Altura": 175,
+        "Peso": 72,
+        "Impulso": 72,
+        "Explosao": 83,
+        "Fisico": 71,
+        "FisicalStatus": 82,
+        "Cabeceio": 61,
+        "Cruzamento": 77,
+        "Habilidade": 82,
+        "Finalizacao": 74,
+        "Dominio": 79,
+        "Temperamento": 73
+      }
+    },
+    {
+      "name": "Jonas Pires",
+      "role": "forward",
+      "position": "Centro Avante",
+      "attributes": {
+        "Pace": 78,
+        "Passing": 69,
+        "Shooting": 82,
+        "Altura": 184,
+        "Peso": 79,
+        "Impulso": 80,
+        "Explosao": 77,
+        "Fisico": 78,
+        "FisicalStatus": 84,
+        "Cabeceio": 80,
+        "Cruzamento": 63,
+        "Habilidade": 75,
+        "Finalizacao": 84,
+        "Dominio": 76,
+        "Temperamento": 74
+      }
+    },
+    {
+      "name": "Kaique Mota",
+      "role": "forward",
+      "position": "Segundo Atacante",
+      "attributes": {
+        "Pace": 80,
+        "Passing": 74,
+        "Shooting": 76,
+        "Altura": 178,
+        "Peso": 74,
+        "Impulso": 73,
+        "Explosao": 80,
+        "Fisico": 72,
+        "FisicalStatus": 83,
+        "Cabeceio": 66,
+        "Cruzamento": 70,
+        "Habilidade": 79,
+        "Finalizacao": 78,
+        "Dominio": 81,
+        "Temperamento": 76
+      }
+    }
+  ]
+}

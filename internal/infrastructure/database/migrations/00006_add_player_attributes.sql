@@ -1,0 +1,29 @@
+-- +goose Up
+ALTER TABLE players
+    ADD COLUMN altura SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN peso SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN impulso SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN explosao SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN fisico SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN fisical_status SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN cabeceio SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN cruzamento SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN habilidade SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN finalizacao SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN dominio SMALLINT NOT NULL DEFAULT 0,
+    ADD COLUMN temperamento SMALLINT NOT NULL DEFAULT 0;
+
+-- +goose Down
+ALTER TABLE players
+    DROP COLUMN temperamento,
+    DROP COLUMN dominio,
+    DROP COLUMN finalizacao,
+    DROP COLUMN habilidade,
+    DROP COLUMN cruzamento,
+    DROP COLUMN cabeceio,
+    DROP COLUMN fisical_status,
+    DROP COLUMN fisico,
+    DROP COLUMN explosao,
+    DROP COLUMN impulso,
+    DROP COLUMN peso,
+    DROP COLUMN altura;

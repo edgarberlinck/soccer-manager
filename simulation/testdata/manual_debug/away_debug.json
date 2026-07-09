@@ -1,0 +1,247 @@
+{
+  "team_name": "Boreal SC",
+  "players": [
+    {
+      "name": "Neto Araujo",
+      "role": "goalkeeper",
+      "position": "Goleiro",
+      "attributes": {
+        "Pace": 57,
+        "Passing": 71,
+        "Shooting": 34,
+        "Altura": 190,
+        "Peso": 84,
+        "Impulso": 80,
+        "Explosao": 69,
+        "Fisico": 81,
+        "FisicalStatus": 87,
+        "Cabeceio": 51,
+        "Cruzamento": 43,
+        "Habilidade": 67,
+        "Finalizacao": 34,
+        "Dominio": 75,
+        "Temperamento": 80
+      }
+    },
+    {
+      "name": "Otavio Serra",
+      "role": "defender",
+      "position": "Lateral Esquerdo",
+      "attributes": {
+        "Pace": 73,
+        "Passing": 71,
+        "Shooting": 46,
+        "Altura": 177,
+        "Peso": 73,
+        "Impulso": 70,
+        "Explosao": 75,
+        "Fisico": 73,
+        "FisicalStatus": 85,
+        "Cabeceio": 67,
+        "Cruzamento": 76,
+        "Habilidade": 71,
+        "Finalizacao": 45,
+        "Dominio": 72,
+        "Temperamento": 77
+      }
+    },
+    {
+      "name": "Paulo Rios",
+      "role": "defender",
+      "position": "Zagueiro",
+      "attributes": {
+        "Pace": 65,
+        "Passing": 68,
+        "Shooting": 39,
+        "Altura": 187,
+        "Peso": 81,
+        "Impulso": 76,
+        "Explosao": 66,
+        "Fisico": 80,
+        "FisicalStatus": 86,
+        "Cabeceio": 78,
+        "Cruzamento": 48,
+        "Habilidade": 63,
+        "Finalizacao": 41,
+        "Dominio": 67,
+        "Temperamento": 79
+      }
+    },
+    {
+      "name": "Quirino Luz",
+      "role": "defender",
+      "position": "Zagueiro",
+      "attributes": {
+        "Pace": 63,
+        "Passing": 67,
+        "Shooting": 41,
+        "Altura": 185,
+        "Peso": 79,
+        "Impulso": 74,
+        "Explosao": 64,
+        "Fisico": 78,
+        "FisicalStatus": 87,
+        "Cabeceio": 77,
+        "Cruzamento": 45,
+        "Habilidade": 64,
+        "Finalizacao": 42,
+        "Dominio": 68,
+        "Temperamento": 81
+      }
+    },
+    {
+      "name": "Rafael Cunha",
+      "role": "fullback",
+      "position": "Lateral Direito",
+      "attributes": {
+        "Pace": 78,
+        "Passing": 70,
+        "Shooting": 49,
+        "Altura": 175,
+        "Peso": 72,
+        "Impulso": 71,
+        "Explosao": 79,
+        "Fisico": 72,
+        "FisicalStatus": 84,
+        "Cabeceio": 63,
+        "Cruzamento": 79,
+        "Habilidade": 73,
+        "Finalizacao": 48,
+        "Dominio": 74,
+        "Temperamento": 75
+      }
+    },
+    {
+      "name": "Samuel Braga",
+      "role": "midfielder",
+      "position": "Volante",
+      "attributes": {
+        "Pace": 68,
+        "Passing": 79,
+        "Shooting": 57,
+        "Altura": 180,
+        "Peso": 75,
+        "Impulso": 69,
+        "Explosao": 68,
+        "Fisico": 78,
+        "FisicalStatus": 86,
+        "Cabeceio": 67,
+        "Cruzamento": 66,
+        "Habilidade": 77,
+        "Finalizacao": 58,
+        "Dominio": 80,
+        "Temperamento": 83
+      }
+    },
+    {
+      "name": "Tiago Matos",
+      "role": "midfielder",
+      "position": "Meia Central",
+      "attributes": {
+        "Pace": 72,
+        "Passing": 79,
+        "Shooting": 62,
+        "Altura": 178,
+        "Peso": 74,
+        "Impulso": 69,
+        "Explosao": 72,
+        "Fisico": 71,
+        "FisicalStatus": 84,
+        "Cabeceio": 64,
+        "Cruzamento": 72,
+        "Habilidade": 79,
+        "Finalizacao": 63,
+        "Dominio": 81,
+        "Temperamento": 78
+      }
+    },
+    {
+      "name": "Ulisses Dias",
+      "role": "midfielder",
+      "position": "Ala Esquerda",
+      "attributes": {
+        "Pace": 80,
+        "Passing": 74,
+        "Shooting": 63,
+        "Altura": 173,
+        "Peso": 69,
+        "Impulso": 68,
+        "Explosao": 82,
+        "Fisico": 68,
+        "FisicalStatus": 82,
+        "Cabeceio": 57,
+        "Cruzamento": 81,
+        "Habilidade": 80,
+        "Finalizacao": 64,
+        "Dominio": 79,
+        "Temperamento": 76
+      }
+    },
+    {
+      "name": "Vitor Leal",
+      "role": "forward",
+      "position": "Ala Direita",
+      "attributes": {
+        "Pace": 81,
+        "Passing": 73,
+        "Shooting": 69,
+        "Altura": 174,
+        "Peso": 71,
+        "Impulso": 71,
+        "Explosao": 82,
+        "Fisico": 70,
+        "FisicalStatus": 83,
+        "Cabeceio": 60,
+        "Cruzamento": 76,
+        "Habilidade": 81,
+        "Finalizacao": 73,
+        "Dominio": 78,
+        "Temperamento": 74
+      }
+    },
+    {
+      "name": "Will Costa",
+      "role": "forward",
+      "position": "Centro Avante",
+      "attributes": {
+        "Pace": 77,
+        "Passing": 68,
+        "Shooting": 83,
+        "Altura": 183,
+        "Peso": 78,
+        "Impulso": 81,
+        "Explosao": 76,
+        "Fisico": 79,
+        "FisicalStatus": 85,
+        "Cabeceio": 81,
+        "Cruzamento": 62,
+        "Habilidade": 74,
+        "Finalizacao": 85,
+        "Dominio": 75,
+        "Temperamento": 73
+      }
+    },
+    {
+      "name": "Yuri Faria",
+      "role": "forward",
+      "position": "Segundo Atacante",
+      "attributes": {
+        "Pace": 79,
+        "Passing": 75,
+        "Shooting": 75,
+        "Altura": 177,
+        "Peso": 73,
+        "Impulso": 72,
+        "Explosao": 79,
+        "Fisico": 71,
+        "FisicalStatus": 84,
+        "Cabeceio": 65,
+        "Cruzamento": 69,
+        "Habilidade": 80,
+        "Finalizacao": 77,
+        "Dominio": 80,
+        "Temperamento": 77
+      }
+    }
+  ]
+}

@@ -18,7 +18,19 @@ INSERT INTO players (
     age,
     pace,
     passing,
-    shooting
+    shooting,
+    altura,
+    peso,
+    impulso,
+    explosao,
+    fisico,
+    fisical_status,
+    cabeceio,
+    cruzamento,
+    habilidade,
+    finalizacao,
+    dominio,
+    temperamento
 )
 VALUES (
     $1,
@@ -26,18 +38,42 @@ VALUES (
     $3,
     $4,
     $5,
-    $6
+    $6,
+    $7,
+    $8,
+    $9,
+    $10,
+    $11,
+    $12,
+    $13,
+    $14,
+    $15,
+    $16,
+    $17,
+    $18
 )
-RETURNING id, name, age, pace, passing, shooting
+RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
 `
 
 type CreatePlayerParams struct {
-	ID       uuid.UUID
-	Name     string
-	Age      int32
-	Pace     int16
-	Passing  int16
-	Shooting int16
+	ID            uuid.UUID
+	Name          string
+	Age           int32
+	Pace          int16
+	Passing       int16
+	Shooting      int16
+	Altura        int16
+	Peso          int16
+	Impulso       int16
+	Explosao      int16
+	Fisico        int16
+	FisicalStatus int16
+	Cabeceio      int16
+	Cruzamento    int16
+	Habilidade    int16
+	Finalizacao   int16
+	Dominio       int16
+	Temperamento  int16
 }
 
 func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) (Player, error) {
@@ -48,6 +84,18 @@ func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) (Pla
 		arg.Pace,
 		arg.Passing,
 		arg.Shooting,
+		arg.Altura,
+		arg.Peso,
+		arg.Impulso,
+		arg.Explosao,
+		arg.Fisico,
+		arg.FisicalStatus,
+		arg.Cabeceio,
+		arg.Cruzamento,
+		arg.Habilidade,
+		arg.Finalizacao,
+		arg.Dominio,
+		arg.Temperamento,
 	)
 	var i Player
 	err := row.Scan(
@@ -57,12 +105,24 @@ func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) (Pla
 		&i.Pace,
 		&i.Passing,
 		&i.Shooting,
+		&i.Altura,
+		&i.Peso,
+		&i.Impulso,
+		&i.Explosao,
+		&i.Fisico,
+		&i.FisicalStatus,
+		&i.Cabeceio,
+		&i.Cruzamento,
+		&i.Habilidade,
+		&i.Finalizacao,
+		&i.Dominio,
+		&i.Temperamento,
 	)
 	return i, err
 }
 
 const findPlayersReadyToRetire = `-- name: FindPlayersReadyToRetire :many
-SELECT id, name, age, pace, passing, shooting
+SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
 FROM players
 WHERE age >= $1
 `
@@ -83,6 +143,18 @@ func (q *Queries) FindPlayersReadyToRetire(ctx context.Context, age int32) ([]Pl
 			&i.Pace,
 			&i.Passing,
 			&i.Shooting,
+			&i.Altura,
+			&i.Peso,
+			&i.Impulso,
+			&i.Explosao,
+			&i.Fisico,
+			&i.FisicalStatus,
+			&i.Cabeceio,
+			&i.Cruzamento,
+			&i.Habilidade,
+			&i.Finalizacao,
+			&i.Dominio,
+			&i.Temperamento,
 		); err != nil {
 			return nil, err
 		}
@@ -98,7 +170,7 @@ func (q *Queries) FindPlayersReadyToRetire(ctx context.Context, age int32) ([]Pl
 }
 
 const getPlayer = `-- name: GetPlayer :one
-SELECT id, name, age, pace, passing, shooting
+SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
 FROM players
 WHERE id = $1
 `
@@ -113,6 +185,18 @@ func (q *Queries) GetPlayer(ctx context.Context, id uuid.UUID) (Player, error) {
 		&i.Pace,
 		&i.Passing,
 		&i.Shooting,
+		&i.Altura,
+		&i.Peso,
+		&i.Impulso,
+		&i.Explosao,
+		&i.Fisico,
+		&i.FisicalStatus,
+		&i.Cabeceio,
+		&i.Cruzamento,
+		&i.Habilidade,
+		&i.Finalizacao,
+		&i.Dominio,
+		&i.Temperamento,
 	)
 	return i, err
 }
@@ -129,7 +213,7 @@ func (q *Queries) IncreasePlayerAge(ctx context.Context, id uuid.UUID) error {
 }
 
 const listPlayers = `-- name: ListPlayers :many
-SELECT id, name, age, pace, passing, shooting
+SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
 FROM players
 `
 
@@ -149,6 +233,18 @@ func (q *Queries) ListPlayers(ctx context.Context) ([]Player, error) {
 			&i.Pace,
 			&i.Passing,
 			&i.Shooting,
+			&i.Altura,
+			&i.Peso,
+			&i.Impulso,
+			&i.Explosao,
+			&i.Fisico,
+			&i.FisicalStatus,
+			&i.Cabeceio,
+			&i.Cruzamento,
+			&i.Habilidade,
+			&i.Finalizacao,
+			&i.Dominio,
+			&i.Temperamento,
 		); err != nil {
 			return nil, err
 		}
@@ -170,18 +266,42 @@ SET
     age = $3,
     pace = $4,
     passing = $5,
-    shooting = $6
+    shooting = $6,
+    altura = $7,
+    peso = $8,
+    impulso = $9,
+    explosao = $10,
+    fisico = $11,
+    fisical_status = $12,
+    cabeceio = $13,
+    cruzamento = $14,
+    habilidade = $15,
+    finalizacao = $16,
+    dominio = $17,
+    temperamento = $18
 WHERE id = $1
-RETURNING id, name, age, pace, passing, shooting
+RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
 `
 
 type UpdatePlayerParams struct {
-	ID       uuid.UUID
-	Name     string
-	Age      int32
-	Pace     int16
-	Passing  int16
-	Shooting int16
+	ID            uuid.UUID
+	Name          string
+	Age           int32
+	Pace          int16
+	Passing       int16
+	Shooting      int16
+	Altura        int16
+	Peso          int16
+	Impulso       int16
+	Explosao      int16
+	Fisico        int16
+	FisicalStatus int16
+	Cabeceio      int16
+	Cruzamento    int16
+	Habilidade    int16
+	Finalizacao   int16
+	Dominio       int16
+	Temperamento  int16
 }
 
 func (q *Queries) UpdatePlayer(ctx context.Context, arg UpdatePlayerParams) (Player, error) {
@@ -192,6 +312,18 @@ func (q *Queries) UpdatePlayer(ctx context.Context, arg UpdatePlayerParams) (Pla
 		arg.Pace,
 		arg.Passing,
 		arg.Shooting,
+		arg.Altura,
+		arg.Peso,
+		arg.Impulso,
+		arg.Explosao,
+		arg.Fisico,
+		arg.FisicalStatus,
+		arg.Cabeceio,
+		arg.Cruzamento,
+		arg.Habilidade,
+		arg.Finalizacao,
+		arg.Dominio,
+		arg.Temperamento,
 	)
 	var i Player
 	err := row.Scan(
@@ -201,6 +333,18 @@ func (q *Queries) UpdatePlayer(ctx context.Context, arg UpdatePlayerParams) (Pla
 		&i.Pace,
 		&i.Passing,
 		&i.Shooting,
+		&i.Altura,
+		&i.Peso,
+		&i.Impulso,
+		&i.Explosao,
+		&i.Fisico,
+		&i.FisicalStatus,
+		&i.Cabeceio,
+		&i.Cruzamento,
+		&i.Habilidade,
+		&i.Finalizacao,
+		&i.Dominio,
+		&i.Temperamento,
 	)
 	return i, err
 }
@@ -210,16 +354,40 @@ UPDATE players
 SET
     pace = $2,
     passing = $3,
-    shooting = $4
+    shooting = $4,
+    altura = $5,
+    peso = $6,
+    impulso = $7,
+    explosao = $8,
+    fisico = $9,
+    fisical_status = $10,
+    cabeceio = $11,
+    cruzamento = $12,
+    habilidade = $13,
+    finalizacao = $14,
+    dominio = $15,
+    temperamento = $16
 WHERE id = $1
-RETURNING id, name, age, pace, passing, shooting
+RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
 `
 
 type UpdatePlayerAttributesParams struct {
-	ID       uuid.UUID
-	Pace     int16
-	Passing  int16
-	Shooting int16
+	ID            uuid.UUID
+	Pace          int16
+	Passing       int16
+	Shooting      int16
+	Altura        int16
+	Peso          int16
+	Impulso       int16
+	Explosao      int16
+	Fisico        int16
+	FisicalStatus int16
+	Cabeceio      int16
+	Cruzamento    int16
+	Habilidade    int16
+	Finalizacao   int16
+	Dominio       int16
+	Temperamento  int16
 }
 
 func (q *Queries) UpdatePlayerAttributes(ctx context.Context, arg UpdatePlayerAttributesParams) (Player, error) {
@@ -228,6 +396,18 @@ func (q *Queries) UpdatePlayerAttributes(ctx context.Context, arg UpdatePlayerAt
 		arg.Pace,
 		arg.Passing,
 		arg.Shooting,
+		arg.Altura,
+		arg.Peso,
+		arg.Impulso,
+		arg.Explosao,
+		arg.Fisico,
+		arg.FisicalStatus,
+		arg.Cabeceio,
+		arg.Cruzamento,
+		arg.Habilidade,
+		arg.Finalizacao,
+		arg.Dominio,
+		arg.Temperamento,
 	)
 	var i Player
 	err := row.Scan(
@@ -237,6 +417,18 @@ func (q *Queries) UpdatePlayerAttributes(ctx context.Context, arg UpdatePlayerAt
 		&i.Pace,
 		&i.Passing,
 		&i.Shooting,
+		&i.Altura,
+		&i.Peso,
+		&i.Impulso,
+		&i.Explosao,
+		&i.Fisico,
+		&i.FisicalStatus,
+		&i.Cabeceio,
+		&i.Cruzamento,
+		&i.Habilidade,
+		&i.Finalizacao,
+		&i.Dominio,
+		&i.Temperamento,
 	)
 	return i, err
 }

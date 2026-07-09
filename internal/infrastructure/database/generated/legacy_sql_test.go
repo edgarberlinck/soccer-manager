@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"regexp"
@@ -169,18 +170,21 @@ func TestPlayerQueries(t *testing.T) {
 	defer cleanup()
 
 	id := uuid.New()
-	playerCols := []string{"id", "name", "age", "pace", "passing", "shooting"}
+	playerCols := []string{"id", "name", "age", "pace", "passing", "shooting", "altura", "peso", "impulso", "explosao", "fisico", "fisical_status", "cabeceio", "cruzamento", "habilidade", "finalizacao", "dominio", "temperamento"}
+	createArgs := []driver.Value{id, "Ronaldo", int32(30), int16(90), int16(80), int16(85), int16(180), int16(78), int16(82), int16(84), int16(88), int16(86), int16(75), int16(79), int16(91), int16(87), int16(89), int16(80)}
+	updateArgs := []driver.Value{id, "Ronaldo", int32(31), int16(91), int16(81), int16(86), int16(181), int16(79), int16(83), int16(85), int16(89), int16(87), int16(76), int16(80), int16(92), int16(88), int16(90), int16(81)}
+	attrArgs := []driver.Value{id, int16(92), int16(82), int16(87), int16(182), int16(80), int16(84), int16(86), int16(90), int16(88), int16(77), int16(81), int16(93), int16(89), int16(91), int16(82)}
 
 	mock.ExpectQuery(regexp.QuoteMeta(createPlayer)).
-		WithArgs(id, "Ronaldo", int32(30), int16(90), int16(80), int16(85)).
-		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(id, "Ronaldo", int32(30), int16(90), int16(80), int16(85)))
-	_, err := queries.CreatePlayer(context.Background(), CreatePlayerParams{ID: id, Name: "Ronaldo", Age: 30, Pace: 90, Passing: 80, Shooting: 85})
+		WithArgs(createArgs...).
+		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(createArgs...))
+	_, err := queries.CreatePlayer(context.Background(), CreatePlayerParams{ID: id, Name: "Ronaldo", Age: 30, Pace: 90, Passing: 80, Shooting: 85, Altura: 180, Peso: 78, Impulso: 82, Explosao: 84, Fisico: 88, FisicalStatus: 86, Cabeceio: 75, Cruzamento: 79, Habilidade: 91, Finalizacao: 87, Dominio: 89, Temperamento: 80})
 	if err != nil {
 		t.Fatalf("create player failed: %v", err)
 	}
 
 	mock.ExpectQuery(regexp.QuoteMeta(getPlayer)).WithArgs(id).
-		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(id, "Ronaldo", int32(30), int16(90), int16(80), int16(85)))
+		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(createArgs...))
 	_, err = queries.GetPlayer(context.Background(), id)
 	if err != nil {
 		t.Fatalf("get player failed: %v", err)
@@ -192,30 +196,30 @@ func TestPlayerQueries(t *testing.T) {
 	}
 
 	mock.ExpectQuery(regexp.QuoteMeta(updatePlayer)).
-		WithArgs(id, "Ronaldo", int32(31), int16(91), int16(81), int16(86)).
-		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(id, "Ronaldo", int32(31), int16(91), int16(81), int16(86)))
-	_, err = queries.UpdatePlayer(context.Background(), UpdatePlayerParams{ID: id, Name: "Ronaldo", Age: 31, Pace: 91, Passing: 81, Shooting: 86})
+		WithArgs(updateArgs...).
+		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(updateArgs...))
+	_, err = queries.UpdatePlayer(context.Background(), UpdatePlayerParams{ID: id, Name: "Ronaldo", Age: 31, Pace: 91, Passing: 81, Shooting: 86, Altura: 181, Peso: 79, Impulso: 83, Explosao: 85, Fisico: 89, FisicalStatus: 87, Cabeceio: 76, Cruzamento: 80, Habilidade: 92, Finalizacao: 88, Dominio: 90, Temperamento: 81})
 	if err != nil {
 		t.Fatalf("update player failed: %v", err)
 	}
 
 	mock.ExpectQuery(regexp.QuoteMeta(updatePlayerAttributes)).
-		WithArgs(id, int16(92), int16(82), int16(87)).
-		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(id, "Ronaldo", int32(31), int16(92), int16(82), int16(87)))
-	_, err = queries.UpdatePlayerAttributes(context.Background(), UpdatePlayerAttributesParams{ID: id, Pace: 92, Passing: 82, Shooting: 87})
+		WithArgs(attrArgs...).
+		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(id, "Ronaldo", int32(31), int16(92), int16(82), int16(87), int16(182), int16(80), int16(84), int16(86), int16(90), int16(88), int16(77), int16(81), int16(93), int16(89), int16(91), int16(82)))
+	_, err = queries.UpdatePlayerAttributes(context.Background(), UpdatePlayerAttributesParams{ID: id, Pace: 92, Passing: 82, Shooting: 87, Altura: 182, Peso: 80, Impulso: 84, Explosao: 86, Fisico: 90, FisicalStatus: 88, Cabeceio: 77, Cruzamento: 81, Habilidade: 93, Finalizacao: 89, Dominio: 91, Temperamento: 82})
 	if err != nil {
 		t.Fatalf("update attributes failed: %v", err)
 	}
 
 	mock.ExpectQuery(regexp.QuoteMeta(findPlayersReadyToRetire)).WithArgs(int32(30)).
-		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(id, "Ronaldo", int32(30), int16(90), int16(80), int16(85)))
+		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(createArgs...))
 	list, err := queries.FindPlayersReadyToRetire(context.Background(), 30)
 	if err != nil || len(list) != 1 {
 		t.Fatalf("find retire failed: %v", err)
 	}
 
 	mock.ExpectQuery(regexp.QuoteMeta(listPlayers)).
-		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(id, "Ronaldo", int32(30), int16(90), int16(80), int16(85)))
+		WillReturnRows(sqlmock.NewRows(playerCols).AddRow(createArgs...))
 	list, err = queries.ListPlayers(context.Background())
 	if err != nil || len(list) != 1 {
 		t.Fatalf("list players failed: %v", err)

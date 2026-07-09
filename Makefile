@@ -5,8 +5,11 @@ SQLC := $(shell go env GOPATH)/bin/sqlc
 AIR := $(shell go env GOPATH)/bin/air
 MIGRATIONS_DIR=internal/infrastructure/database/migrations
 APP_ENTRY=./cmd/api
+SIMULATE_DEBUG_ENTRY=./cmd/simulate-debug
+SIM_DEBUG_HOME ?= ./simulation/testdata/manual_debug/home_debug.json
+SIM_DEBUG_AWAY ?= ./simulation/testdata/manual_debug/away_debug.json
 
-.PHONY: migrate-up migrate-down sqlc start watch install-air test test-watch test-coverage
+.PHONY: migrate-up migrate-down sqlc start watch install-air test test-watch test-coverage simulate-debug
 
 migrate-up:
 	$(GOOSE) -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" up
@@ -45,3 +48,6 @@ test-watch:
 test-coverage:
 	go test ./... -coverprofile=coverage.out
 	go tool cover -func=coverage.out
+
+simulate-debug:
+	go run $(SIMULATE_DEBUG_ENTRY) $(SIM_DEBUG_HOME) $(SIM_DEBUG_AWAY)

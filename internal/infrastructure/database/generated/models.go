@@ -62,12 +62,24 @@ type MatchResult struct {
 }
 
 type Player struct {
-	ID       uuid.UUID
-	Name     string
-	Age      int32
-	Pace     int16
-	Passing  int16
-	Shooting int16
+	ID            uuid.UUID
+	Name          string
+	Age           int32
+	Pace          int16
+	Passing       int16
+	Shooting      int16
+	Altura        int16
+	Peso          int16
+	Impulso       int16
+	Explosao      int16
+	Fisico        int16
+	FisicalStatus int16
+	Cabeceio      int16
+	Cruzamento    int16
+	Habilidade    int16
+	Finalizacao   int16
+	Dominio       int16
+	Temperamento  int16
 }
 
 type User struct {

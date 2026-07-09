@@ -49,8 +49,8 @@ func TestManyQueriesCloseAndRowsErrors(t *testing.T) {
 		queries, mock, cleanup := newMockQueries(t)
 		defer cleanup()
 
-		rows := sqlmock.NewRows([]string{"id", "name", "age", "pace", "passing", "shooting"}).
-			AddRow(uuid.New(), "A", int32(40), int16(1), int16(1), int16(1)).
+		rows := sqlmock.NewRows([]string{"id", "name", "age", "pace", "passing", "shooting", "altura", "peso", "impulso", "explosao", "fisico", "fisical_status", "cabeceio", "cruzamento", "habilidade", "finalizacao", "dominio", "temperamento"}).
+			AddRow(uuid.New(), "A", int32(40), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1)).
 			CloseError(errors.New("close error"))
 		mock.ExpectQuery(regexp.QuoteMeta(findPlayersReadyToRetire)).WithArgs(int32(40)).WillReturnRows(rows)
 
@@ -64,8 +64,8 @@ func TestManyQueriesCloseAndRowsErrors(t *testing.T) {
 		queries, mock, cleanup := newMockQueries(t)
 		defer cleanup()
 
-		rows := sqlmock.NewRows([]string{"id", "name", "age", "pace", "passing", "shooting"}).
-			AddRow(uuid.New(), "A", int32(20), int16(1), int16(1), int16(1)).
+		rows := sqlmock.NewRows([]string{"id", "name", "age", "pace", "passing", "shooting", "altura", "peso", "impulso", "explosao", "fisico", "fisical_status", "cabeceio", "cruzamento", "habilidade", "finalizacao", "dominio", "temperamento"}).
+			AddRow(uuid.New(), "A", int32(20), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1), int16(1)).
 			CloseError(errors.New("close error"))
 		mock.ExpectQuery(regexp.QuoteMeta(listPlayers)).WillReturnRows(rows)
 

@@ -37,6 +37,10 @@ type PlayMatchTickInput struct {
 	AwayClubID  uuid.UUID
 	HomeScore   int
 	AwayScore   int
+	PossessionTeam string
+	BallZone string
+	HomePlayers []simulation.TacticalPlayer
+	AwayPlayers []simulation.TacticalPlayer
 }
 
 func (e *Engine) PlayMatchTick(input PlayMatchTickInput) simulation.TickOutcome {
@@ -48,6 +52,10 @@ func (e *Engine) PlayMatchTick(input PlayMatchTickInput) simulation.TickOutcome 
 		AwayClubID:  input.AwayClubID,
 		HomeScore:   input.HomeScore,
 		AwayScore:   input.AwayScore,
+		PossessionTeam: input.PossessionTeam,
+		BallZone: input.BallZone,
+		HomePlayers: input.HomePlayers,
+		AwayPlayers: input.AwayPlayers,
 	})
 }
 
