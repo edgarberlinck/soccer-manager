@@ -242,6 +242,72 @@
         "Dominio": 81,
         "Temperamento": 76
       }
+    },
+    {
+      "name": "Leo Bastos",
+      "role": "defender",
+      "position": "Zagueiro",
+      "attributes": {
+        "Pace": 67,
+        "Passing": 66,
+        "Shooting": 38,
+        "Altura": 187,
+        "Peso": 80,
+        "Impulso": 76,
+        "Explosao": 65,
+        "Fisico": 80,
+        "FisicalStatus": 90,
+        "Cabeceio": 78,
+        "Cruzamento": 44,
+        "Habilidade": 63,
+        "Finalizacao": 40,
+        "Dominio": 67,
+        "Temperamento": 79
+      }
+    },
+    {
+      "name": "Matheus Nogueira",
+      "role": "midfielder",
+      "position": "Meia Central",
+      "attributes": {
+        "Pace": 73,
+        "Passing": 81,
+        "Shooting": 61,
+        "Altura": 177,
+        "Peso": 73,
+        "Impulso": 67,
+        "Explosao": 74,
+        "Fisico": 71,
+        "FisicalStatus": 91,
+        "Cabeceio": 63,
+        "Cruzamento": 72,
+        "Habilidade": 82,
+        "Finalizacao": 63,
+        "Dominio": 83,
+        "Temperamento": 80
+      }
+    },
+    {
+      "name": "Nicolas Freitas",
+      "role": "forward",
+      "position": "Centro Avante",
+      "attributes": {
+        "Pace": 81,
+        "Passing": 68,
+        "Shooting": 80,
+        "Altura": 182,
+        "Peso": 77,
+        "Impulso": 79,
+        "Explosao": 80,
+        "Fisico": 76,
+        "FisicalStatus": 92,
+        "Cabeceio": 78,
+        "Cruzamento": 60,
+        "Habilidade": 75,
+        "Finalizacao": 82,
+        "Dominio": 77,
+        "Temperamento": 75
+      }
     }
   ]
 }

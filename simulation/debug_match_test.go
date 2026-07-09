@@ -59,7 +59,48 @@ func TestSimulateDebugMatchRendersFullMatch(t *testing.T) {
 	if snapshots[10].Field.BallZone == "" || snapshots[10].Field.Possession == "" {
 		t.Fatalf("expected tactical state in snapshot: %+v", snapshots[10].Field)
 	}
+	if len(snapshots[10].Field.Matrix) != debugFieldHeight || len(snapshots[10].Field.Matrix[0]) != debugFieldWidth {
+		t.Fatalf("expected FE matrix sized %dx%d", debugFieldWidth, debugFieldHeight)
+	}
+	ballCell := snapshots[10].Field.Matrix[snapshots[10].Field.Ball.Y][snapshots[10].Field.Ball.X]
+	if len(ballCell.Occupants) == 0 {
+		t.Fatalf("expected matrix occupant metadata for ball cell")
+	}
 	if snapshots[len(snapshots)-1].Outcome.Tick != 90 {
 		t.Fatalf("expected last snapshot at tick 90, got %d", snapshots[len(snapshots)-1].Outcome.Tick)
+	}
+}
+
+func TestSimulateDebugMatchTracksStaminaAndSubstitutions(t *testing.T) {
+	home := append(balancedSquad(), TacticalPlayer{
+		Name:     "Banco Forte",
+		Role:     "forward",
+		Position: "Centro Avante",
+		Attributes: balancedSquad()[0].Attributes,
+	})
+	home[9].Attributes.FisicalStatus = 28
+	home[11].Attributes.FisicalStatus = 92
+	home[11].Attributes.Finalizacao = 88
+	home[11].Attributes.Pace = 84
+
+	snapshots := SimulateDebugMatch(DebugMatchConfig{
+		MatchID: uuid.MustParse("99999999-1111-1111-1111-111111111111"),
+		Seed:    77,
+		Home: DebugTeam{Name: "Casa", ClubID: uuid.MustParse("11111111-2222-2222-2222-222222222222"), Players: home},
+		Away: DebugTeam{Name: "Fora", ClubID: uuid.MustParse("33333333-4444-4444-4444-444444444444"), Players: balancedSquad()},
+	})
+
+	foundSub := false
+	for _, snapshot := range snapshots {
+		if snapshot.Field.LowestHomeStamina >= 99 {
+			t.Fatalf("expected home stamina to decrease during simulation")
+		}
+		if len(snapshot.Field.Substitutions) > 0 {
+			foundSub = true
+			break
+		}
+	}
+	if !foundSub {
+		t.Fatalf("expected at least one automatic substitution when bench is available")
 	}
 }

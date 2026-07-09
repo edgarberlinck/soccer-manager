@@ -242,6 +242,72 @@
         "Dominio": 80,
         "Temperamento": 77
       }
+    },
+    {
+      "name": "Zeca Moura",
+      "role": "defender",
+      "position": "Zagueiro",
+      "attributes": {
+        "Pace": 64,
+        "Passing": 67,
+        "Shooting": 40,
+        "Altura": 186,
+        "Peso": 79,
+        "Impulso": 75,
+        "Explosao": 65,
+        "Fisico": 79,
+        "FisicalStatus": 91,
+        "Cabeceio": 78,
+        "Cruzamento": 45,
+        "Habilidade": 64,
+        "Finalizacao": 41,
+        "Dominio": 68,
+        "Temperamento": 80
+      }
+    },
+    {
+      "name": "Andre Viana",
+      "role": "midfielder",
+      "position": "Volante",
+      "attributes": {
+        "Pace": 69,
+        "Passing": 80,
+        "Shooting": 56,
+        "Altura": 179,
+        "Peso": 74,
+        "Impulso": 68,
+        "Explosao": 69,
+        "Fisico": 77,
+        "FisicalStatus": 90,
+        "Cabeceio": 66,
+        "Cruzamento": 65,
+        "Habilidade": 78,
+        "Finalizacao": 57,
+        "Dominio": 80,
+        "Temperamento": 82
+      }
+    },
+    {
+      "name": "Bruno Xavier",
+      "role": "forward",
+      "position": "Ala Direita",
+      "attributes": {
+        "Pace": 82,
+        "Passing": 72,
+        "Shooting": 71,
+        "Altura": 175,
+        "Peso": 72,
+        "Impulso": 71,
+        "Explosao": 83,
+        "Fisico": 71,
+        "FisicalStatus": 93,
+        "Cabeceio": 62,
+        "Cruzamento": 77,
+        "Habilidade": 82,
+        "Finalizacao": 74,
+        "Dominio": 79,
+        "Temperamento": 75
+      }
     }
   ]
 }

@@ -79,8 +79,8 @@ func loadDebugTeam(path string) (simulation.DebugTeam, error) {
 	if err := json.Unmarshal(content, &raw); err != nil {
 		return simulation.DebugTeam{}, fmt.Errorf("json invalido em %s: %w", path, err)
 	}
-	if len(raw.Players) != 11 {
-		return simulation.DebugTeam{}, fmt.Errorf("arquivo %s precisa ter exatamente 11 jogadores, recebeu %d", path, len(raw.Players))
+	if len(raw.Players) < 11 {
+		return simulation.DebugTeam{}, fmt.Errorf("arquivo %s precisa ter pelo menos 11 jogadores, recebeu %d", path, len(raw.Players))
 	}
 
 	clubID, err := resolveClubID(raw, path)
