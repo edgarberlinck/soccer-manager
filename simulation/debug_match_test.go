@@ -104,3 +104,57 @@ func TestSimulateDebugMatchTracksStaminaAndSubstitutions(t *testing.T) {
 		t.Fatalf("expected at least one automatic substitution when bench is available")
 	}
 }
+
+func TestSimulateDebugMatchStoresEventActorAndPlayerStats(t *testing.T) {
+	cfg := DebugMatchConfig{
+		MatchID: uuid.MustParse("77777777-1111-1111-1111-111111111111"),
+		Seed:    21,
+		Home: DebugTeam{
+			Name:    "Casa",
+			ClubID:  uuid.MustParse("11111111-3333-3333-3333-333333333333"),
+			Players: namedBalancedSquad("casa"),
+		},
+		Away: DebugTeam{
+			Name:    "Fora",
+			ClubID:  uuid.MustParse("22222222-4444-4444-4444-444444444444"),
+			Players: namedBalancedSquad("fora"),
+		},
+	}
+
+	snapshots := SimulateDebugMatch(cfg)
+	if len(snapshots) == 0 {
+		t.Fatal("expected snapshots")
+	}
+
+	foundActor := false
+	foundStats := false
+	for _, snapshot := range snapshots {
+		if snapshot.Field.EventActorID != "" || strings.Contains(snapshot.Outcome.Description, "Jogador:") {
+			foundActor = true
+		}
+		for _, member := range snapshot.Field.HomeSquad {
+			if member.Stats.Movement > 0 || member.Stats.Touches > 0 || member.Stats.CorrectTouches > 0 || member.Stats.LongPasses > 0 || member.Stats.ShotsOnGoal > 0 || member.Stats.Fouls > 0 {
+				foundStats = true
+				break
+			}
+		}
+		if foundActor && foundStats {
+			break
+		}
+	}
+
+	if !foundActor {
+		t.Fatal("expected at least one tick with event actor")
+	}
+	if !foundStats {
+		t.Fatal("expected player stats to accumulate during simulation")
+	}
+}
+
+func namedBalancedSquad(prefix string) []TacticalPlayer {
+	squad := balancedSquad()
+	for i := range squad {
+		squad[i].Name = prefix + "_" + string(rune('a'+i))
+	}
+	return squad
+}

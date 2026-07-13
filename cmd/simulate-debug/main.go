@@ -11,6 +11,7 @@ import (
 	"manager/game/simulation"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -52,7 +53,29 @@ type simulationReport struct {
 	HomeScore  int                       `json:"home_score"`
 	AwayScore  int                       `json:"away_score"`
 	Calendar   reportCalendar            `json:"calendar"`
+	PerformanceSummary reportPerformanceSummary `json:"performance_summary"`
 	Snapshots  []simulation.DebugSnapshot `json:"snapshots"`
+}
+
+type reportPerformanceSummary struct {
+	Home reportTeamLeaders `json:"home"`
+	Away reportTeamLeaders `json:"away"`
+}
+
+type reportTeamLeaders struct {
+	Team           string             `json:"team"`
+	Movement       []reportStatLeader `json:"movement"`
+	Touches        []reportStatLeader `json:"touches"`
+	CorrectTouches []reportStatLeader `json:"correct_touches"`
+	LongPasses     []reportStatLeader `json:"long_passes"`
+	ShotsOnGoal    []reportStatLeader `json:"shots_on_goal"`
+	Fouls          []reportStatLeader `json:"fouls"`
+}
+
+type reportStatLeader struct {
+	PlayerID   string `json:"player_id"`
+	PlayerName string `json:"player_name"`
+	Value      int    `json:"value"`
 }
 
 func main() {
@@ -104,6 +127,8 @@ func main() {
 		}
 		fmt.Println(simulation.RenderDebugSnapshot(snapshot))
 	}
+
+	printPerformanceSummary(report)
 }
 
 func createSimulationReport(now time.Time, seed int64, matchID uuid.UUID, home, away simulation.DebugTeam, snapshots []simulation.DebugSnapshot, tickSeconds int) (simulationReport, error) {
@@ -176,8 +201,77 @@ func createSimulationReport(now time.Time, seed int64, matchID uuid.UUID, home, 
 			AgendaNow:       agendaNow,
 			AgendaMatchPlan: agendaPlan,
 		},
+		PerformanceSummary: buildPerformanceSummary(final, home.Name, away.Name),
 		Snapshots: snapshots,
 	}, nil
+}
+
+func buildPerformanceSummary(final simulation.DebugSnapshot, homeName, awayName string) reportPerformanceSummary {
+	return reportPerformanceSummary{
+		Home: buildTeamLeaders(homeName, final.Field.HomeSquad),
+		Away: buildTeamLeaders(awayName, final.Field.AwaySquad),
+	}
+}
+
+func buildTeamLeaders(teamName string, members []simulation.SquadMemberSnapshot) reportTeamLeaders {
+	return reportTeamLeaders{
+		Team:           teamName,
+		Movement:       topLeaders(members, func(s simulation.PlayerMatchStats) int { return s.Movement }),
+		Touches:        topLeaders(members, func(s simulation.PlayerMatchStats) int { return s.Touches }),
+		CorrectTouches: topLeaders(members, func(s simulation.PlayerMatchStats) int { return s.CorrectTouches }),
+		LongPasses:     topLeaders(members, func(s simulation.PlayerMatchStats) int { return s.LongPasses }),
+		ShotsOnGoal:    topLeaders(members, func(s simulation.PlayerMatchStats) int { return s.ShotsOnGoal }),
+		Fouls:          topLeaders(members, func(s simulation.PlayerMatchStats) int { return s.Fouls }),
+	}
+}
+
+func topLeaders(members []simulation.SquadMemberSnapshot, valueFn func(simulation.PlayerMatchStats) int) []reportStatLeader {
+	leaders := make([]reportStatLeader, 0, len(members))
+	for _, member := range members {
+		leaders = append(leaders, reportStatLeader{
+			PlayerID:   member.ID,
+			PlayerName: member.Name,
+			Value:      valueFn(member.Stats),
+		})
+	}
+
+	sort.SliceStable(leaders, func(i, j int) bool {
+		if leaders[i].Value == leaders[j].Value {
+			return leaders[i].PlayerName < leaders[j].PlayerName
+		}
+		return leaders[i].Value > leaders[j].Value
+	})
+
+	if len(leaders) > 3 {
+		leaders = leaders[:3]
+	}
+	return leaders
+}
+
+func printPerformanceSummary(report simulationReport) {
+	fmt.Println()
+	fmt.Println(strings.Repeat("=", 72))
+	fmt.Println("RESUMO DE PERFORMANCE (TOP 3)")
+	printTeamLeaders(report.PerformanceSummary.Home)
+	printTeamLeaders(report.PerformanceSummary.Away)
+}
+
+func printTeamLeaders(team reportTeamLeaders) {
+	fmt.Printf("\nTime: %s\n", team.Team)
+	printLeaderLine("Movimentacao", team.Movement)
+	printLeaderLine("Toques", team.Touches)
+	printLeaderLine("Toques corretos", team.CorrectTouches)
+	printLeaderLine("Lancamentos", team.LongPasses)
+	printLeaderLine("Chutes no gol", team.ShotsOnGoal)
+	printLeaderLine("Faltas", team.Fouls)
+}
+
+func printLeaderLine(label string, leaders []reportStatLeader) {
+	entries := make([]string, 0, len(leaders))
+	for _, leader := range leaders {
+		entries = append(entries, fmt.Sprintf("%s (%d)", leader.PlayerName, leader.Value))
+	}
+	fmt.Printf("- %s: %s\n", label, strings.Join(entries, ", "))
 }
 
 func writeReport(path string, report simulationReport) error {

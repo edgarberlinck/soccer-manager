@@ -78,6 +78,15 @@ type DebugSubstitution struct {
 	Reason        string
 }
 
+type PlayerMatchStats struct {
+	Movement      int `json:"movement"`
+	Touches       int `json:"touches"`
+	CorrectTouches int `json:"correct_touches"`
+	LongPasses    int `json:"long_passes"`
+	ShotsOnGoal   int `json:"shots_on_goal"`
+	Fouls         int `json:"fouls"`
+}
+
 type SquadMemberSnapshot struct {
 	ID           string
 	Team         string
@@ -90,6 +99,7 @@ type SquadMemberSnapshot struct {
 	SubbedInTick int
 	SubbedOutTick int
 	Point        *FieldPoint
+	Stats        PlayerMatchStats
 }
 
 type FieldSnapshot struct {
@@ -114,6 +124,9 @@ type FieldSnapshot struct {
 	Matrix            [][]FieldCell
 	LowestHomeStamina int
 	LowestAwayStamina int
+	EventActorID      string
+	EventActorName    string
+	EventActorTeam    string
 }
 
 type DebugSnapshot struct {
@@ -132,6 +145,8 @@ type debugPlayerState struct {
 	SubbedInTick  int
 	SubbedOutTick int
 	LastPoint     FieldPoint
+	HasLastPoint  bool
+	Stats         PlayerMatchStats
 }
 
 func SimulateDebugMatch(cfg DebugMatchConfig) []DebugSnapshot {
@@ -179,7 +194,13 @@ func SimulateDebugMatch(cfg DebugMatchConfig) []DebugSnapshot {
 		applyFatigue(homeStates, homeMode, statePossession == teamHome, tick)
 		applyFatigue(awayStates, awayMode, statePossession == teamAway, tick)
 
-		field := buildFieldSnapshot(cfg, tick, statePossession, stateZone, homeMode, awayMode, homeStates, awayStates, homeSubsUsed, awaySubsUsed, append(homeSubs, awaySubs...))
+		eventActor := pickEventActor(cfg.MatchID, cfg.Seed, tick, outcome, statePossession, homeStates, awayStates)
+		if eventActor != nil {
+			registerEventStats(&eventActor.Stats, outcome.EventType)
+			outcome.Description = enrichDescriptionWithActor(outcome.Description, eventActor.Player.Name)
+		}
+
+		field := buildFieldSnapshot(cfg, tick, statePossession, stateZone, homeMode, awayMode, homeStates, awayStates, homeSubsUsed, awaySubsUsed, append(homeSubs, awaySubs...), eventActor)
 
 		if outcome.PossessionTeam == "" {
 			outcome.PossessionTeam = statePossession
@@ -325,7 +346,7 @@ func advanceBallZone(currentZone, possession, eventType string) string {
 	return currentZone
 }
 
-func buildFieldSnapshot(cfg DebugMatchConfig, tick int, possession, ballZone, homeMode, awayMode string, homeStates, awayStates []debugPlayerState, homeSubsUsed, awaySubsUsed int, substitutions []DebugSubstitution) FieldSnapshot {
+func buildFieldSnapshot(cfg DebugMatchConfig, tick int, possession, ballZone, homeMode, awayMode string, homeStates, awayStates []debugPlayerState, homeSubsUsed, awaySubsUsed int, substitutions []DebugSubstitution, eventActor *debugPlayerState) FieldSnapshot {
 	rng := rand.New(rand.NewSource(seedForTick(cfg.Seed+404, cfg.MatchID, tick)))
 	homeActors := buildActors(homeStates, true, homeMode, possession, ballZone)
 	awayActors := buildActors(awayStates, false, awayMode, possession, ballZone)
@@ -354,6 +375,11 @@ func buildFieldSnapshot(cfg DebugMatchConfig, tick int, possession, ballZone, ho
 		LowestHomeStamina: lowestStamina(homeStates),
 		LowestAwayStamina: lowestStamina(awayStates),
 	}
+	if eventActor != nil {
+		snapshot.EventActorID = eventActor.ID
+		snapshot.EventActorName = eventActor.Player.Name
+		snapshot.EventActorTeam = eventActor.Team
+	}
 	snapshot.Matrix = buildFieldMatrix(snapshot)
 	return snapshot
 }
@@ -370,7 +396,11 @@ func buildActors(states []debugPlayerState, isHome bool, mode, possession, ballZ
 		canonical := canonicalPosition(p.Position, p.Role)
 		counts[canonical]++
 		point := playerPoint(canonical, normalizeRole(p.Role), counts[canonical]-1, isHome, mode, possession, ballZone, p.Name)
+		if states[i].HasLastPoint {
+			states[i].Stats.Movement += manhattanDistance(states[i].LastPoint, point)
+		}
 		states[i].LastPoint = point
+		states[i].HasLastPoint = true
 		actors = append(actors, DebugActor{ID: states[i].ID, Team: states[i].Team, Name: p.Name, Role: normalizeRole(p.Role), Position: canonical, Point: point, Stamina: clampStatValue(int(math.Round(states[i].Stamina))), Starter: states[i].Starter, Active: true})
 	}
 
@@ -397,8 +427,10 @@ func buildSquadSnapshot(states []debugPlayerState) []SquadMemberSnapshot {
 			SubbedInTick: states[i].SubbedInTick,
 			SubbedOutTick: states[i].SubbedOutTick,
 			Point: point,
+			Stats: states[i].Stats,
 		})
 	}
+	sortSquadSnapshots(snapshot)
 	return snapshot
 }
 
@@ -492,6 +524,8 @@ func applyAutoSubstitutions(tick int, states []debugPlayerState, used int) ([]De
 	reason := "baixo impacto"
 	if states[bestOut].Stamina < 58 {
 		reason = "desgaste"
+	} else if playerFormScore(states[bestOut].Stats) < 0.38 {
+		reason = "baixo rendimento"
 	}
 
 	states[bestOut].Active = false
@@ -517,7 +551,7 @@ func applyAutoSubstitutions(tick int, states []debugPlayerState, used int) ([]De
 
 func bestBenchReplacement(states []debugPlayerState, outIdx int) (int, float64) {
 	out := states[outIdx]
-	outContribution := playerContribution(out.currentTacticalPlayer()) * (out.Stamina / 100)
+	outContribution := playerContribution(out.currentTacticalPlayer()) * (out.Stamina / 100) * clampFloat(0.7+playerFormScore(out.Stats)*0.5, 0.55, 1.2)
 	bestIdx := -1
 	bestGain := -1.0
 	for inIdx := range states {
@@ -528,10 +562,13 @@ func bestBenchReplacement(states []debugPlayerState, outIdx int) (int, float64) 
 		if fit <= 0 {
 			continue
 		}
-		benchContribution := playerContribution(states[inIdx].currentTacticalPlayer()) * fit
+		benchContribution := playerContribution(states[inIdx].currentTacticalPlayer()) * fit * clampFloat(0.8+playerFormScore(states[inIdx].Stats)*0.4, 0.7, 1.2)
 		gain := benchContribution - outContribution
 		if out.Stamina < 58 {
 			gain += (58 - out.Stamina) / 100
+		}
+		if states[outIdx].Stats.Fouls > 1 {
+			gain += 0.08
 		}
 		if gain > bestGain {
 			bestGain = gain
@@ -570,6 +607,18 @@ func lineGroup(role string) string {
 func playerContribution(p TacticalPlayer) float64 {
 	a := p.Attributes
 	return float64(a.Pace+a.Passing+a.Shooting+a.Explosao+a.Fisico+a.Habilidade+a.Finalizacao+a.Dominio) / 800
+}
+
+func playerFormScore(stats PlayerMatchStats) float64 {
+	accuracy := 0.5
+	if stats.Touches > 0 {
+		accuracy = float64(stats.CorrectTouches) / float64(stats.Touches)
+	}
+	activity := clampFloat(float64(stats.Touches)/30, 0.2, 1)
+	shotImpact := clampFloat(float64(stats.ShotsOnGoal)/4, 0, 1)
+	foulPenalty := clampFloat(float64(stats.Fouls)/4, 0, 1)
+	score := 0.5*accuracy + 0.25*activity + 0.25*shotImpact - 0.18*foulPenalty
+	return clampFloat(score, 0, 1)
 }
 
 func applyFatigue(states []debugPlayerState, mode string, hasPossession bool, tick int) {
@@ -970,6 +1019,127 @@ func sortSquadSnapshots(members []SquadMemberSnapshot) {
 		}
 		return members[i].Name < members[j].Name
 	})
+}
+
+func pickEventActor(matchID uuid.UUID, seed int64, tick int, outcome TickOutcome, possession string, homeStates, awayStates []debugPlayerState) *debugPlayerState {
+	team := eventActorTeam(outcome.EventType, possession)
+	if team == "" {
+		return nil
+	}
+	states := homeStates
+	if team == teamAway {
+		states = awayStates
+	}
+	active := make([]*debugPlayerState, 0, 11)
+	for i := range states {
+		if states[i].Active {
+			active = append(active, &states[i])
+		}
+	}
+	if len(active) == 0 {
+		return nil
+	}
+
+	preferredRoles := eventPreferredRoles(outcome.EventType)
+	filtered := filterByRole(active, preferredRoles)
+	if len(filtered) == 0 {
+		filtered = active
+	}
+
+	rng := rand.New(rand.NewSource(seedForTick(seed+31337, matchID, tick)))
+	return filtered[rng.Intn(len(filtered))]
+}
+
+func eventActorTeam(eventType, possession string) string {
+	switch eventType {
+	case "goal_home", "foul_home", "injury_home":
+		return teamHome
+	case "goal_away", "foul_away", "injury_away":
+		return teamAway
+	case "halftime", "fulltime":
+		return ""
+	default:
+		return possession
+	}
+}
+
+func eventPreferredRoles(eventType string) []string {
+	switch eventType {
+	case "goal_home", "goal_away", "shots_on_goal":
+		return []string{"forward", "midfielder"}
+	case "long_pass", "short_pass":
+		return []string{"midfielder", "fullback", "defender"}
+	case "dribble", "cross", "corner":
+		return []string{"forward", "midfielder", "fullback"}
+	case "tackle", "interception", "foul_home", "foul_away":
+		return []string{"defender", "fullback", "midfielder"}
+	default:
+		return nil
+	}
+}
+
+func filterByRole(players []*debugPlayerState, roles []string) []*debugPlayerState {
+	if len(roles) == 0 {
+		return players
+	}
+	allow := map[string]struct{}{}
+	for _, role := range roles {
+		allow[role] = struct{}{}
+	}
+	filtered := make([]*debugPlayerState, 0, len(players))
+	for _, p := range players {
+		if _, ok := allow[normalizeRole(p.Player.Role)]; ok {
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered
+}
+
+func registerEventStats(stats *PlayerMatchStats, eventType string) {
+	if stats == nil {
+		return
+	}
+	switch eventType {
+	case "short_pass":
+		stats.Touches++
+		stats.CorrectTouches++
+	case "long_pass":
+		stats.Touches++
+		stats.CorrectTouches++
+		stats.LongPasses++
+	case "dribble", "cross", "corner", "tackle", "interception":
+		stats.Touches++
+		stats.CorrectTouches++
+	case "goal_home", "goal_away":
+		stats.Touches++
+		stats.CorrectTouches++
+		stats.ShotsOnGoal++
+	case "foul_home", "foul_away":
+		stats.Touches++
+		stats.Fouls++
+	}
+}
+
+func enrichDescriptionWithActor(desc, playerName string) string {
+	if strings.TrimSpace(playerName) == "" {
+		return desc
+	}
+	if strings.Contains(strings.ToLower(desc), "jogador:") {
+		return desc
+	}
+	return desc + " Jogador: " + playerName + "."
+}
+
+func manhattanDistance(a, b FieldPoint) int {
+	dx := a.X - b.X
+	if dx < 0 {
+		dx = -dx
+	}
+	dy := a.Y - b.Y
+	if dy < 0 {
+		dy = -dy
+	}
+	return dx + dy
 }
 
 func clampInt(value, min, max int) int {
