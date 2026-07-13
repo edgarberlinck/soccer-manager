@@ -2,10 +2,12 @@ package engine
 
 import (
 	"fmt"
+	"manager/game/internal/domain/calendar"
 	"manager/game/internal/domain/club"
 	"manager/game/internal/domain/player"
 	"manager/game/internal/domain/training"
 	"manager/game/simulation"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -27,6 +29,23 @@ func (e *Engine) StartTraining(player player.Player, session training.TrainingSe
 
 func (e *Engine) FinishTraining(session training.Training) {
 	// todo: Finalizar a traning session
+}
+
+func (e *Engine) BuildSeasonCalendar(input calendar.BuildSeasonCalendarInput) (calendar.SeasonCalendar, error) {
+	return calendar.BuildSeasonCalendar(input)
+}
+
+func (e *Engine) CalendarAgendaAt(calendarState calendar.SeasonCalendar, tick int) calendar.TickAgenda {
+	return calendarState.AgendaAt(tick)
+}
+
+func (e *Engine) PlanCalendarMatchSimulation(entries []calendar.CalendarEntry, maxParallel, maxMatchesPerBatch int) calendar.SimulationBatchPlan {
+	return calendar.PlanMatchSimulation(entries, maxParallel, maxMatchesPerBatch)
+}
+
+func (e *Engine) ProcessNoMatchWindowTick(serverTick int, now time.Time) {
+	// TODO: encaixar regras de treino automático, scouting e mercado de transferências.
+	fmt.Printf("idle-window tick=%d at=%s\n", serverTick, now.Format(time.RFC3339))
 }
 
 type PlayMatchTickInput struct {

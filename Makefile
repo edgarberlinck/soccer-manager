@@ -8,8 +8,9 @@ APP_ENTRY=./cmd/api
 SIMULATE_DEBUG_ENTRY=./cmd/simulate-debug
 SIM_DEBUG_HOME ?= ./simulation/testdata/manual_debug/home_debug.json
 SIM_DEBUG_AWAY ?= ./simulation/testdata/manual_debug/away_debug.json
+SIM_OUTPUT ?= ./tmp/simulation-output.json
 
-.PHONY: migrate-up migrate-down sqlc start watch install-air test test-watch test-coverage simulate-debug
+.PHONY: migrate-up migrate-down sqlc start watch install-air test test-watch test-coverage simulate-debug simulation
 
 migrate-up:
 	$(GOOSE) -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)" up
@@ -50,4 +51,6 @@ test-coverage:
 	go tool cover -func=coverage.out
 
 simulate-debug:
-	go run $(SIMULATE_DEBUG_ENTRY) $(SIM_DEBUG_HOME) $(SIM_DEBUG_AWAY)
+	go run $(SIMULATE_DEBUG_ENTRY) -out $(SIM_OUTPUT) $(SIM_DEBUG_HOME) $(SIM_DEBUG_AWAY)
+
+simulation: simulate-debug

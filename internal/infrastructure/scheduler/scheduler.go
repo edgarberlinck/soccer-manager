@@ -5,6 +5,7 @@ import (
 	"log"
 	"manager/game/engine"
 	"manager/game/internal/config"
+	"manager/game/internal/domain/calendar"
 	dbrepository "manager/game/internal/infrastructure/database/generated"
 	trainingrepository "manager/game/internal/infrastructure/database/repository"
 	"runtime"
@@ -19,13 +20,20 @@ type Scheduler struct {
 	engine  *engine.Engine
 	queries *dbrepository.Queries
 	config  config.Config
+	clock   calendar.ServerClock
 }
 
 func New(engine *engine.Engine, queries *dbrepository.Queries, cfg config.Config) *Scheduler {
+	tickDuration := time.Duration(cfg.CalendarTickSeconds) * time.Second
+	if tickDuration <= 0 {
+		tickDuration = time.Minute
+	}
+
 	return &Scheduler{
 		engine:  engine,
 		queries: queries,
 		config:  cfg,
+		clock:   calendar.NewServerClock(time.Local, tickDuration),
 	}
 }
 
@@ -68,17 +76,29 @@ func (s *Scheduler) runCron(ctx context.Context) {
 
 func (s *Scheduler) Tick(ctx context.Context) {
 	start := time.Now()
+	now := s.clock.Now()
+	serverTick := s.clock.TickAt(now)
 
-	maxParallel := s.config.SimulationMaxParallel
-	if maxParallel <= 0 {
-		maxParallel = runtime.NumCPU()
+	workerPoolSize := s.config.SimulationWorkerPoolSize
+	if workerPoolSize <= 0 {
+		workerPoolSize = s.config.SimulationMaxParallel
+	}
+	if workerPoolSize <= 0 {
+		workerPoolSize = runtime.NumCPU()
 	}
 	batchSize := s.config.SimulationMatchBatchSize
 	if batchSize <= 0 {
 		batchSize = 128
 	}
+	queueSize := s.config.SimulationQueueSize
+	if queueSize <= 0 {
+		queueSize = workerPoolSize * 2
+	}
+	if queueSize < 1 {
+		queueSize = 1
+	}
 
-	trainings := trainingrepository.FindPendingTrainings(time.Now())
+	trainings := trainingrepository.FindPendingTrainings(now)
 	matches, err := s.queries.ListInProgressMatches(ctx, int32(batchSize))
 	if err != nil {
 		log.Printf("scheduler: unable to list in-progress matches: %v", err)
@@ -103,28 +123,44 @@ func (s *Scheduler) Tick(ctx context.Context) {
 		})
 	}
 
-	s.runParallelTasks(tasks, maxParallel)
-	log.Printf("scheduler: tick finished in %s (trainings=%d matches=%d)", time.Since(start), len(trainings), len(matches))
+	if len(matches) == 0 {
+		tasks = append(tasks, func() {
+			s.engine.ProcessNoMatchWindowTick(serverTick, now)
+		})
+	}
+
+	s.runParallelTasks(tasks, workerPoolSize, queueSize)
+	log.Printf("scheduler: tick finished in %s (server_tick=%d trainings=%d matches=%d workers=%d queue=%d)", time.Since(start), serverTick, len(trainings), len(matches), workerPoolSize, queueSize)
 }
 
-func (s *Scheduler) runParallelTasks(tasks []func(), maxParallel int) {
+func (s *Scheduler) runParallelTasks(tasks []func(), workerPoolSize, queueSize int) {
 	if len(tasks) == 0 {
 		return
 	}
+	if workerPoolSize <= 0 {
+		workerPoolSize = 1
+	}
+	if queueSize < 1 {
+		queueSize = 1
+	}
 
-	sem := make(chan struct{}, maxParallel)
+	jobs := make(chan func(), queueSize)
 	var wg sync.WaitGroup
 
-	for _, task := range tasks {
+	for i := 0; i < workerPoolSize; i++ {
 		wg.Add(1)
-		sem <- struct{}{}
-
-		go func(fn func()) {
+		go func() {
 			defer wg.Done()
-			defer func() { <-sem }()
-			fn()
-		}(task)
+			for task := range jobs {
+				task()
+			}
+		}()
 	}
+
+	for _, task := range tasks {
+		jobs <- task
+	}
+	close(jobs)
 
 	wg.Wait()
 }

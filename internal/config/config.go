@@ -18,6 +18,9 @@ type Config struct {
 	SimulationTickCron        string
 	SimulationMaxParallel     int
 	SimulationMatchBatchSize  int
+	SimulationWorkerPoolSize  int
+	SimulationQueueSize       int
+	CalendarTickSeconds       int
 }
 
 func Load() Config {
@@ -34,6 +37,9 @@ func Load() Config {
 		SimulationTickCron:        os.Getenv("SIMULATION_TICK_CRON"),
 		SimulationMaxParallel:     getEnvAsIntOrDefault("SIMULATION_MAX_PARALLEL", 8),
 		SimulationMatchBatchSize:  getEnvAsIntOrDefault("SIMULATION_MATCH_BATCH_SIZE", 128),
+		SimulationWorkerPoolSize:  getEnvAsIntOrDefault("SIMULATION_WORKER_POOL_SIZE", 0),
+		SimulationQueueSize:       getEnvAsIntOrDefault("SIMULATION_QUEUE_SIZE", 0),
+		CalendarTickSeconds:       getEnvAsIntOrDefault("CALENDAR_TICK_SECONDS", 60),
 	}
 }
 

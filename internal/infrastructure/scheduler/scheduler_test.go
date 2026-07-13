@@ -137,13 +137,13 @@ func TestRunParallelTasks(t *testing.T) {
 		func() { atomic.AddInt32(&count, 1) },
 	}
 
-	s.runParallelTasks(tasks, 2)
+	s.runParallelTasks(tasks, 2, 4)
 
 	if got := atomic.LoadInt32(&count); got != 3 {
 		t.Fatalf("expected all tasks executed, got %d", got)
 	}
 
-	s.runParallelTasks(nil, 2)
+	s.runParallelTasks(nil, 2, 4)
 }
 
 func TestProcessMatchTickInProgress(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"manager/game/internal/domain/calendar"
 	"manager/game/internal/domain/player"
 	"manager/game/simulation"
 	"os"
@@ -29,8 +30,35 @@ type squadFilePlayer struct {
 	Attributes player.Attributes `json:"attributes"`
 }
 
+type reportCalendar struct {
+	ServerNow      string              `json:"server_now"`
+	DayStart       string              `json:"day_start"`
+	DayEnd         string              `json:"day_end"`
+	TickNow        int                 `json:"tick_now"`
+	DayStartTick   int                 `json:"day_start_tick"`
+	DayEndTick     int                 `json:"day_end_tick"`
+	Sporting       []calendar.CalendarEntry `json:"sporting"`
+	Administrative []calendar.CalendarEntry `json:"administrative"`
+	AgendaNow      calendar.TickAgenda `json:"agenda_now"`
+	AgendaMatchPlan calendar.SimulationBatchPlan `json:"agenda_match_plan"`
+}
+
+type simulationReport struct {
+	Seed       int64                     `json:"seed"`
+	GeneratedAt string                   `json:"generated_at"`
+	MatchID    uuid.UUID                 `json:"match_id"`
+	HomeTeam   string                    `json:"home_team"`
+	AwayTeam   string                    `json:"away_team"`
+	HomeScore  int                       `json:"home_score"`
+	AwayScore  int                       `json:"away_score"`
+	Calendar   reportCalendar            `json:"calendar"`
+	Snapshots  []simulation.DebugSnapshot `json:"snapshots"`
+}
+
 func main() {
 	seedFlag := flag.Int64("seed", 0, "0 usa seed aleatoria; qualquer outro valor reproduz a simulacao")
+	outFlag := flag.String("out", "./tmp/simulation-output.json", "arquivo JSON de saída com os dados gerados")
+	tickSecondsFlag := flag.Int("calendar-tick-seconds", 60, "duração de cada tick do calendário em segundos")
 	flag.Parse()
 
 	if flag.NArg() != 2 {
@@ -59,7 +87,16 @@ func main() {
 		Away:    away,
 	})
 
+	report, err := createSimulationReport(time.Now(), seed, matchID, home, away, snapshots, *tickSecondsFlag)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := writeReport(*outFlag, report); err != nil {
+		log.Fatal(err)
+	}
+
 	fmt.Printf("SIMULACAO DEBUG MANUAL - sem efeito no fluxo normal da API | seed=%d\n", seed)
+	fmt.Printf("Dados gerados em: %s\n", *outFlag)
 	for index, snapshot := range snapshots {
 		if index > 0 {
 			fmt.Println()
@@ -67,6 +104,94 @@ func main() {
 		}
 		fmt.Println(simulation.RenderDebugSnapshot(snapshot))
 	}
+}
+
+func createSimulationReport(now time.Time, seed int64, matchID uuid.UUID, home, away simulation.DebugTeam, snapshots []simulation.DebugSnapshot, tickSeconds int) (simulationReport, error) {
+	if len(snapshots) == 0 {
+		return simulationReport{}, errors.New("simulation generated no snapshots")
+	}
+
+	clock := calendar.NewServerClock(time.Local, time.Duration(tickSeconds)*time.Second)
+	dayStart, dayEnd := clock.DayBounds(now)
+	dayStartTick, dayEndTick := clock.TickRangeForDay(now)
+	tickNow := clock.TickAt(now)
+
+	matchStart := tickNow + 5
+	if matchStart > dayEndTick {
+		matchStart = dayEndTick
+	}
+	matchEnd := matchStart + len(snapshots) - 1
+	if matchEnd > dayEndTick {
+		matchEnd = dayEndTick
+	}
+
+	seasonCalendar, err := calendar.BuildSeasonCalendar(calendar.BuildSeasonCalendarInput{
+		ClubID:          home.ClubID,
+		SeasonStartTick: dayStartTick,
+		SeasonEndTick:   dayEndTick,
+		Matches: []calendar.MatchSlot{
+			{
+				MatchID:        matchID,
+				Kind:           calendar.EntryChampionshipMatch,
+				Title:          "championship_match",
+				StartTick:      matchStart,
+				EndTick:        matchEnd,
+				OpponentClubID: away.ClubID,
+			},
+		},
+		TransferWindows: []calendar.TransferWindow{
+			{
+				WindowID:  uuid.NewSHA1(uuid.NameSpaceOID, []byte(fmt.Sprintf("transfer:%s", home.ClubID))),
+				Title:     "transfer_window",
+				StartTick: dayStartTick,
+				EndTick:   dayEndTick,
+			},
+		},
+	})
+	if err != nil {
+		return simulationReport{}, err
+	}
+
+	agendaNow := seasonCalendar.AgendaAt(tickNow)
+	agendaPlan := calendar.PlanMatchSimulation(agendaNow.ActiveMatches, 2, 2)
+	final := snapshots[len(snapshots)-1]
+
+	return simulationReport{
+		Seed:        seed,
+		GeneratedAt: now.Format(time.RFC3339),
+		MatchID:     matchID,
+		HomeTeam:    home.Name,
+		AwayTeam:    away.Name,
+		HomeScore:   final.Outcome.HomeScore,
+		AwayScore:   final.Outcome.AwayScore,
+		Calendar: reportCalendar{
+			ServerNow:       now.In(time.Local).Format(time.RFC3339),
+			DayStart:        dayStart.Format(time.RFC3339),
+			DayEnd:          dayEnd.Format(time.RFC3339),
+			TickNow:         tickNow,
+			DayStartTick:    dayStartTick,
+			DayEndTick:      dayEndTick,
+			Sporting:        seasonCalendar.Sporting,
+			Administrative:  seasonCalendar.Administrative,
+			AgendaNow:       agendaNow,
+			AgendaMatchPlan: agendaPlan,
+		},
+		Snapshots: snapshots,
+	}, nil
+}
+
+func writeReport(path string, report simulationReport) error {
+	if strings.TrimSpace(path) == "" {
+		return errors.New("report path is required")
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	payload, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, payload, 0o644)
 }
 
 func loadDebugTeam(path string) (simulation.DebugTeam, error) {
