@@ -29,7 +29,9 @@ function DashboardPage() {
   const [error, setError] = useState("");
   const [progressMessage, setProgressMessage] = useState("");
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
 
   const isPlayerDetailsRoute = pathname.startsWith("/dashboard/player/");
 
