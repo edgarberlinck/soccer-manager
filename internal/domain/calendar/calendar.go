@@ -70,16 +70,16 @@ const (
 )
 
 type CalendarEntry struct {
-	ID             uuid.UUID
-	ClubID         uuid.UUID
-	Kind           EntryKind
-	Lane           EntryLane
-	Title          string
-	StartTick      int
-	EndTick        int
-	MatchID        uuid.NullUUID
-	OpponentClubID uuid.NullUUID
-	WindowID       uuid.NullUUID
+	ID             uuid.UUID     `json:"id"`
+	ClubID         uuid.UUID     `json:"club_id"`
+	Kind           EntryKind     `json:"kind"`
+	Lane           EntryLane     `json:"lane"`
+	Title          string        `json:"title"`
+	StartTick      int           `json:"start_tick"`
+	EndTick        int           `json:"end_tick"`
+	MatchID        uuid.NullUUID `json:"match_id,omitempty"`
+	OpponentClubID uuid.NullUUID `json:"opponent_club_id,omitempty"`
+	WindowID       uuid.NullUUID `json:"window_id,omitempty"`
 }
 
 type MatchSlot struct {

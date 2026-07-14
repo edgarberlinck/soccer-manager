@@ -131,3 +131,57 @@ func testSquad() []simulation.TacticalPlayer {
 	}
 	return players
 }
+
+func TestTopLeadersMovement(t *testing.T) {
+	stats := []simulation.SquadMemberSnapshot{
+		{ID: "p1", Name: "Player A", Stats: simulation.PlayerMatchStats{Movement: 10}},
+		{ID: "p2", Name: "Player B", Stats: simulation.PlayerMatchStats{Movement: 8}},
+		{ID: "p3", Name: "Player C", Stats: simulation.PlayerMatchStats{Movement: 12}},
+		{ID: "p4", Name: "Player D", Stats: simulation.PlayerMatchStats{Movement: 9}},
+	}
+
+	leaders := topLeaders(stats, func(s simulation.PlayerMatchStats) int { return s.Movement })
+	
+	if len(leaders) != 3 {
+		t.Fatalf("expected top 3 leaders, got %d", len(leaders))
+	}
+	
+	if leaders[0].PlayerName != "Player C" || leaders[0].Value != 12 {
+		t.Errorf("expected Player C with 12, got %s with %d", leaders[0].PlayerName, leaders[0].Value)
+	}
+	
+	if leaders[1].PlayerName != "Player A" || leaders[1].Value != 10 {
+		t.Errorf("expected Player A with 10, got %s with %d", leaders[1].PlayerName, leaders[1].Value)
+	}
+	
+	if leaders[2].PlayerName != "Player D" || leaders[2].Value != 9 {
+		t.Errorf("expected Player D with 9, got %s with %d", leaders[2].PlayerName, leaders[2].Value)
+	}
+}
+
+func TestTopLeadersEmptyList(t *testing.T) {
+	leaders := topLeaders([]simulation.SquadMemberSnapshot{}, func(s simulation.PlayerMatchStats) int { return s.Touches })
+	
+	if len(leaders) != 0 {
+		t.Errorf("expected 0 leaders for empty list, got %d", len(leaders))
+	}
+}
+
+func TestTopLeadersWithTies(t *testing.T) {
+	stats := []simulation.SquadMemberSnapshot{
+		{ID: "p1", Name: "Beta", Stats: simulation.PlayerMatchStats{Touches: 10}},
+		{ID: "p2", Name: "Alpha", Stats: simulation.PlayerMatchStats{Touches: 10}},
+		{ID: "p3", Name: "Gamma", Stats: simulation.PlayerMatchStats{Touches: 8}},
+	}
+
+	leaders := topLeaders(stats, func(s simulation.PlayerMatchStats) int { return s.Touches })
+	
+	if len(leaders) != 3 {
+		t.Fatalf("expected 3 leaders, got %d", len(leaders))
+	}
+	
+	// When values are equal, should be sorted alphabetically
+	if leaders[0].Value == leaders[1].Value && leaders[0].PlayerName > leaders[1].PlayerName {
+		t.Errorf("expected alphabetical order for tied values")
+	}
+}

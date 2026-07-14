@@ -111,3 +111,279 @@ func assertWindow(t *testing.T, entry CalendarEntry, kind EntryKind, start, end 
 		t.Fatalf("unexpected entry: %+v, want kind=%s %d-%d", entry, kind, start, end)
 	}
 }
+
+func TestBuildSeasonCalendarWithTransferWindows(t *testing.T) {
+	clubID := uuid.New()
+	windowID := uuid.New()
+	
+	tests := []struct {
+		name        string
+		input       BuildSeasonCalendarInput
+		expectError bool
+	}{
+		{
+			name: "valid transfer window with custom title",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   100,
+				TransferWindows: []TransferWindow{
+					{WindowID: windowID, StartTick: 10, EndTick: 20, Title: "Summer Transfer"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid transfer window without title",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   100,
+				TransferWindows: []TransferWindow{
+					{WindowID: windowID, StartTick: 10, EndTick: 20},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "transfer window with nil ID",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   100,
+				TransferWindows: []TransferWindow{
+					{WindowID: uuid.Nil, StartTick: 10, EndTick: 20},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "transfer window before season start",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 10,
+				SeasonEndTick:   100,
+				TransferWindows: []TransferWindow{
+					{WindowID: windowID, StartTick: 5, EndTick: 20},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "transfer window after season end",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   50,
+				TransferWindows: []TransferWindow{
+					{WindowID: windowID, StartTick: 10, EndTick: 60},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "transfer window with end before start",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   100,
+				TransferWindows: []TransferWindow{
+					{WindowID: windowID, StartTick: 30, EndTick: 20},
+				},
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			calendar, err := BuildSeasonCalendar(tt.input)
+			if tt.expectError {
+				if err == nil {
+					t.Fatal("expected error but got none")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if len(tt.input.TransferWindows) > 0 {
+					if len(calendar.Administrative) != len(tt.input.TransferWindows) {
+						t.Fatalf("expected %d administrative entries, got %d", len(tt.input.TransferWindows), len(calendar.Administrative))
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestBuildSeasonCalendarValidatesMatches(t *testing.T) {
+	clubID := uuid.New()
+	opponentID := uuid.New()
+
+	tests := []struct {
+		name        string
+		input       BuildSeasonCalendarInput
+		expectError bool
+	}{
+		{
+			name: "match with nil ID",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   100,
+				Matches: []MatchSlot{
+					{MatchID: uuid.Nil, Kind: EntryFriendlyMatch, StartTick: 10, EndTick: 12, OpponentClubID: opponentID},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "match with invalid kind",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   100,
+				Matches: []MatchSlot{
+					{MatchID: uuid.New(), Kind: "invalid_kind", StartTick: 10, EndTick: 12, OpponentClubID: opponentID},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "match before season start",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 10,
+				SeasonEndTick:   100,
+				Matches: []MatchSlot{
+					{MatchID: uuid.New(), Kind: EntryFriendlyMatch, StartTick: 5, EndTick: 12, OpponentClubID: opponentID},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "match after season end",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   50,
+				Matches: []MatchSlot{
+					{MatchID: uuid.New(), Kind: EntryFriendlyMatch, StartTick: 40, EndTick: 60, OpponentClubID: opponentID},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "match with end before start",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   100,
+				Matches: []MatchSlot{
+					{MatchID: uuid.New(), Kind: EntryFriendlyMatch, StartTick: 30, EndTick: 20, OpponentClubID: opponentID},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "match without opponent",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   100,
+				Matches: []MatchSlot{
+					{MatchID: uuid.New(), Kind: EntryFriendlyMatch, StartTick: 10, EndTick: 12, OpponentClubID: uuid.Nil},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "valid friendly match with custom title",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   100,
+				Matches: []MatchSlot{
+					{MatchID: uuid.New(), Kind: EntryFriendlyMatch, StartTick: 10, EndTick: 12, OpponentClubID: opponentID, Title: "Test Match"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid championship match without title",
+			input: BuildSeasonCalendarInput{
+				ClubID:          clubID,
+				SeasonStartTick: 1,
+				SeasonEndTick:   100,
+				Matches: []MatchSlot{
+					{MatchID: uuid.New(), Kind: EntryChampionshipMatch, StartTick: 10, EndTick: 12, OpponentClubID: opponentID},
+				},
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := BuildSeasonCalendar(tt.input)
+			if tt.expectError {
+				if err == nil {
+					t.Fatal("expected error but got none")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestAgendaAtEdgeCases(t *testing.T) {
+	clubID := uuid.New()
+	opponentID := uuid.New()
+	
+	calendar, err := BuildSeasonCalendar(BuildSeasonCalendarInput{
+		ClubID:          clubID,
+		SeasonStartTick: 1,
+		SeasonEndTick:   100,
+		Matches: []MatchSlot{
+			{MatchID: uuid.New(), Kind: EntryFriendlyMatch, StartTick: 10, EndTick: 15, OpponentClubID: opponentID},
+			{MatchID: uuid.New(), Kind: EntryChampionshipMatch, StartTick: 20, EndTick: 25, OpponentClubID: opponentID},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	t.Run("before any match", func(t *testing.T) {
+		agenda := calendar.AgendaAt(5)
+		if len(agenda.ActiveMatches) != 0 {
+			t.Fatalf("expected no active matches, got %d", len(agenda.ActiveMatches))
+		}
+		if len(agenda.Starting) != 0 {
+			t.Fatalf("expected no starting matches, got %d", len(agenda.Starting))
+		}
+	})
+
+	t.Run("at match start", func(t *testing.T) {
+		agenda := calendar.AgendaAt(10)
+		if len(agenda.Starting) != 1 {
+			t.Fatalf("expected 1 starting match, got %d", len(agenda.Starting))
+		}
+	})
+
+	t.Run("during match", func(t *testing.T) {
+		agenda := calendar.AgendaAt(12)
+		if len(agenda.ActiveMatches) != 1 {
+			t.Fatalf("expected 1 active match, got %d", len(agenda.ActiveMatches))
+		}
+	})
+
+	t.Run("after all matches", func(t *testing.T) {
+		agenda := calendar.AgendaAt(50)
+		if len(agenda.ActiveMatches) != 0 {
+			t.Fatalf("expected no active matches, got %d", len(agenda.ActiveMatches))
+		}
+	})
+}

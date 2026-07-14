@@ -158,3 +158,214 @@ func namedBalancedSquad(prefix string) []TacticalPlayer {
 	}
 	return squad
 }
+
+func TestPositionAnchor(t *testing.T) {
+	tests := []struct {
+		position string
+		wantX    int
+		wantY    int
+	}{
+		{"goalkeeper", 6, 50},
+		{"left_back", 21, 18},
+		{"right_back", 21, 82},
+		{"center_back", 17, 50},
+		{"defensive_midfielder", 34, 50},
+		{"left_midfielder", 40, 20},
+		{"right_midfielder", 40, 80},
+		{"left_wingback", 40, 20},
+		{"right_wingback", 40, 80},
+		{"left_winger", 40, 20},
+		{"right_winger", 40, 80},
+		{"central_midfielder", 45, 50},
+		{"attacking_midfielder", 58, 50},
+		{"second_striker", 66, 50},
+		{"striker", 76, 50},
+		{"center_forward", 76, 50},
+		{"unknown_position", 44, 50},
+		{"", 44, 50},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.position, func(t *testing.T) {
+			anchor := positionAnchor(tt.position)
+			if anchor.X != tt.wantX || anchor.Y != tt.wantY {
+				t.Errorf("positionAnchor(%q) = (%d, %d), want (%d, %d)",
+					tt.position, anchor.X, anchor.Y, tt.wantX, tt.wantY)
+			}
+		})
+	}
+}
+
+func TestCanonicalPositionEdgeCases(t *testing.T) {
+	tests := []struct {
+		position string
+		role     string
+		want     string
+	}{
+		{"", "goalkeeper", "goalkeeper"},
+		{"auto", "defender", "center_back"},
+		{"goleiro", "goalkeeper", "goalkeeper"},
+		{"keeper", "goalkeeper", "goalkeeper"},
+		{"zagueiro", "defender", "center_back"},
+		{"centerback", "defender", "center_back"},
+		{"lateralesquerdo", "defender", "left_back"},
+		{"lateraldireito", "defender", "right_back"},
+		{"volante", "midfielder", "defensive_midfielder"},
+		{"meia", "midfielder", "central_midfielder"},
+		{"meiocampista", "midfielder", "central_midfielder"},
+		{"meiaofensivo", "midfielder", "attacking_midfielder"},
+		{"alaesquerda", "midfielder", "left_winger"},
+		{"pontaesquerda", "midfielder", "left_winger"},
+		{"aladireita", "midfielder", "right_winger"},
+		{"pontadireita", "midfielder", "right_winger"},
+		{"segundoatacante", "forward", "second_striker"},
+		{"centroavante", "forward", "center_forward"},
+		{"unknown", "midfielder", "central_midfielder"},
+		{"GOLEIRO", "goalkeeper", "goalkeeper"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.position+"_"+tt.role, func(t *testing.T) {
+			got := canonicalPosition(tt.position, tt.role)
+			if got != tt.want {
+				t.Errorf("canonicalPosition(%q, %q) = %q, want %q",
+					tt.position, tt.role, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDefaultTeamName(t *testing.T) {
+	tests := []struct {
+		name   string
+		isHome bool
+		want   string
+	}{
+		{"Team A", true, "Team A"},
+		{"Team B", false, "Team B"},
+		{"", true, "Casa"},
+		{"  ", true, "Casa"},
+		{"", false, "Fora"},
+		{"  ", false, "Fora"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name+"_"+boolString(tt.isHome), func(t *testing.T) {
+			got := defaultTeamName(tt.name, tt.isHome)
+			if got != tt.want {
+				t.Errorf("defaultTeamName(%q, %v) = %q, want %q",
+					tt.name, tt.isHome, got, tt.want)
+			}
+		})
+	}
+}
+
+func boolString(b bool) string {
+	if b {
+		return "home"
+	}
+	return "away"
+}
+
+func TestClampStatValue(t *testing.T) {
+	tests := []struct {
+		input int
+		want  int
+	}{
+		{50, 50},
+		{-10, 1},
+		{0, 1},
+		{1, 1},
+		{99, 99},
+		{100, 99},
+		{150, 99},
+	}
+
+	for _, tt := range tests {
+		got := clampStatValue(tt.input)
+		if got != tt.want {
+			t.Errorf("clampStatValue(%d) = %d, want %d",
+				tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestClampInt(t *testing.T) {
+	tests := []struct {
+		input int
+		min   int
+		max   int
+		want  int
+	}{
+		{5, 0, 10, 5},
+		{-5, 0, 10, 0},
+		{15, 0, 10, 10},
+		{0, 0, 10, 0},
+		{10, 0, 10, 10},
+	}
+
+	for _, tt := range tests {
+		got := clampInt(tt.input, tt.min, tt.max)
+		if got != tt.want {
+			t.Errorf("clampInt(%d, %d, %d) = %d, want %d",
+				tt.input, tt.min, tt.max, got, tt.want)
+		}
+	}
+}
+
+func TestSnapshotTeamName(t *testing.T) {
+	tests := []struct {
+		name     string
+		snapshot DebugSnapshot
+		isHome   bool
+		want     string
+	}{
+		{
+			name: "home with name",
+			snapshot: DebugSnapshot{
+				Field: FieldSnapshot{
+					HomeName: "Home Team",
+					AwayName: "Away Team",
+				},
+			},
+			isHome: true,
+			want:   "Home Team",
+		},
+		{
+			name: "away with name",
+			snapshot: DebugSnapshot{
+				Field: FieldSnapshot{
+					HomeName: "Home Team",
+					AwayName: "Away Team",
+				},
+			},
+			isHome: false,
+			want:   "Away Team",
+		},
+		{
+			name: "home without name",
+			snapshot: DebugSnapshot{
+				Field: FieldSnapshot{},
+			},
+			isHome: true,
+			want:   "Casa",
+		},
+		{
+			name: "away without name",
+			snapshot: DebugSnapshot{
+				Field: FieldSnapshot{},
+			},
+			isHome: false,
+			want:   "Fora",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := snapshotTeamName(tt.snapshot, tt.isHome)
+			if got != tt.want {
+				t.Errorf("snapshotTeamName() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
