@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"manager/game/engine"
 	"manager/game/internal/api"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"os/signal"
 	"syscall"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
@@ -20,13 +22,9 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	cfg := config.Load()
-
-	if cfg.DatabaseURL == "" {
-		log.Fatal("DATABASE_URL is required")
-	}
-	if cfg.AuthJWTSecret == "" {
-		log.Fatal("AUTH_JWT_SECRET is required")
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	db, err := sql.Open("pgx", cfg.DatabaseURL)
@@ -45,7 +43,22 @@ func main() {
 
 	go gameScheduler.Run(ctx)
 
-	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
+	server := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: router,
+	}
+
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			log.Printf("server shutdown error: %v", err)
+		}
+	}()
+
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
 }

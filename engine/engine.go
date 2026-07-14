@@ -22,13 +22,12 @@ func New() *Engine {
 	}
 }
 
-func (e *Engine) StartTraining(player player.Player, session training.TrainingSession) {
-	s := simulation.StartTraining(player, session)
-	fmt.Println(s)
+func (e *Engine) StartTraining(player player.Player, session training.TrainingSession) training.Training {
+	return simulation.StartTraining(player, session)
 }
 
-func (e *Engine) FinishTraining(session training.Training) {
-	// todo: Finalizar a traning session
+func (e *Engine) FinishTraining(session training.Training) training.Training {
+	return simulation.FinishTraining(session, time.Now(), 1.0)
 }
 
 func (e *Engine) BuildSeasonCalendar(input calendar.BuildSeasonCalendarInput) (calendar.SeasonCalendar, error) {

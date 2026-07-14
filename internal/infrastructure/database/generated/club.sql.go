@@ -93,6 +93,36 @@ func (q *Queries) GetClubByName(ctx context.Context, lower string) (Club, error)
 	return i, err
 }
 
+const getUserClubByID = `-- name: GetUserClubByID :one
+SELECT id, user_id, name, short_name, abbreviation, continent, country, created_at, updated_at
+FROM clubs
+WHERE user_id = $1
+	AND id = $2
+LIMIT 1
+`
+
+type GetUserClubByIDParams struct {
+	UserID uuid.UUID
+	ID     uuid.UUID
+}
+
+func (q *Queries) GetUserClubByID(ctx context.Context, arg GetUserClubByIDParams) (Club, error) {
+	row := q.db.QueryRowContext(ctx, getUserClubByID, arg.UserID, arg.ID)
+	var i Club
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.ShortName,
+		&i.Abbreviation,
+		&i.Continent,
+		&i.Country,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserClubs = `-- name: GetUserClubs :many
 SELECT id, user_id, name, short_name, abbreviation, continent, country, created_at, updated_at
 FROM clubs

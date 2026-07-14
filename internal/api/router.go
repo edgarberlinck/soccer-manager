@@ -11,6 +11,7 @@ import (
 
 func NewRouter(queries *repository.Queries, cfg config.Config) *chi.Mux {
 	r := chi.NewRouter()
+	r.Use(NewCORSMiddleware(cfg))
 	authMiddleware := NewJWTAuthMiddleware(cfg)
 
 	clubHandler := NewClubHandler(queries)
@@ -29,7 +30,11 @@ func NewRouter(queries *repository.Queries, cfg config.Config) *chi.Mux {
 
 		r.Route("/clubs", func(r chi.Router) {
 			r.Get("/", clubHandler.ListClubs)
+			r.Post("/ensure", clubHandler.EnsureUserClub)
 			r.Post("/", clubHandler.CreateClub)
+			r.Post("/{clubID}/ensure-squad", clubHandler.EnsureClubSquad)
+			r.Get("/{clubID}/players", clubHandler.ListClubPlayers)
+			r.Get("/{clubID}/players/{playerID}", clubHandler.GetClubPlayerDetail)
 		})
 	})
 

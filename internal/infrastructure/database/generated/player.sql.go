@@ -7,9 +7,159 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+const countPlayersByClubID = `-- name: CountPlayersByClubID :one
+SELECT COUNT(*)::BIGINT
+FROM players
+WHERE club_id = $1
+`
+
+func (q *Queries) CountPlayersByClubID(ctx context.Context, clubID uuid.NullUUID) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countPlayersByClubID, clubID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const createClubPlayer = `-- name: CreateClubPlayer :one
+INSERT INTO players (
+    id,
+    club_id,
+    name,
+    age,
+    position,
+    overall,
+    potential,
+    tier,
+    pace,
+    passing,
+    shooting,
+    altura,
+    peso,
+    impulso,
+    explosao,
+    fisico,
+    fisical_status,
+    cabeceio,
+    cruzamento,
+    habilidade,
+    finalizacao,
+    dominio,
+    temperamento
+)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10,
+    $11,
+    $12,
+    $13,
+    $14,
+    $15,
+    $16,
+    $17,
+    $18,
+    $19,
+    $20,
+    $21,
+    $22,
+    $23
+)
+RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento, club_id, position, overall, potential, tier
+`
+
+type CreateClubPlayerParams struct {
+	ID            uuid.UUID
+	ClubID        uuid.NullUUID
+	Name          string
+	Age           int32
+	Position      string
+	Overall       int16
+	Potential     int16
+	Tier          string
+	Pace          int16
+	Passing       int16
+	Shooting      int16
+	Altura        int16
+	Peso          int16
+	Impulso       int16
+	Explosao      int16
+	Fisico        int16
+	FisicalStatus int16
+	Cabeceio      int16
+	Cruzamento    int16
+	Habilidade    int16
+	Finalizacao   int16
+	Dominio       int16
+	Temperamento  int16
+}
+
+func (q *Queries) CreateClubPlayer(ctx context.Context, arg CreateClubPlayerParams) (Player, error) {
+	row := q.db.QueryRowContext(ctx, createClubPlayer,
+		arg.ID,
+		arg.ClubID,
+		arg.Name,
+		arg.Age,
+		arg.Position,
+		arg.Overall,
+		arg.Potential,
+		arg.Tier,
+		arg.Pace,
+		arg.Passing,
+		arg.Shooting,
+		arg.Altura,
+		arg.Peso,
+		arg.Impulso,
+		arg.Explosao,
+		arg.Fisico,
+		arg.FisicalStatus,
+		arg.Cabeceio,
+		arg.Cruzamento,
+		arg.Habilidade,
+		arg.Finalizacao,
+		arg.Dominio,
+		arg.Temperamento,
+	)
+	var i Player
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Age,
+		&i.Pace,
+		&i.Passing,
+		&i.Shooting,
+		&i.Altura,
+		&i.Peso,
+		&i.Impulso,
+		&i.Explosao,
+		&i.Fisico,
+		&i.FisicalStatus,
+		&i.Cabeceio,
+		&i.Cruzamento,
+		&i.Habilidade,
+		&i.Finalizacao,
+		&i.Dominio,
+		&i.Temperamento,
+		&i.ClubID,
+		&i.Position,
+		&i.Overall,
+		&i.Potential,
+		&i.Tier,
+	)
+	return i, err
+}
 
 const createPlayer = `-- name: CreatePlayer :one
 INSERT INTO players (
@@ -52,7 +202,7 @@ VALUES (
     $17,
     $18
 )
-RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
+RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento, club_id, position, overall, potential, tier
 `
 
 type CreatePlayerParams struct {
@@ -117,12 +267,69 @@ func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) (Pla
 		&i.Finalizacao,
 		&i.Dominio,
 		&i.Temperamento,
+		&i.ClubID,
+		&i.Position,
+		&i.Overall,
+		&i.Potential,
+		&i.Tier,
+	)
+	return i, err
+}
+
+const createPlayerContract = `-- name: CreatePlayerContract :one
+INSERT INTO player_contracts (
+        id,
+        player_id,
+        salary_cents,
+        release_clause_cents,
+        starts_at,
+        ends_at
+)
+VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6
+)
+RETURNING id, player_id, salary_cents, release_clause_cents, starts_at, ends_at, created_at, updated_at
+`
+
+type CreatePlayerContractParams struct {
+	ID                 uuid.UUID
+	PlayerID           uuid.UUID
+	SalaryCents        int64
+	ReleaseClauseCents sql.NullInt64
+	StartsAt           time.Time
+	EndsAt             time.Time
+}
+
+func (q *Queries) CreatePlayerContract(ctx context.Context, arg CreatePlayerContractParams) (PlayerContract, error) {
+	row := q.db.QueryRowContext(ctx, createPlayerContract,
+		arg.ID,
+		arg.PlayerID,
+		arg.SalaryCents,
+		arg.ReleaseClauseCents,
+		arg.StartsAt,
+		arg.EndsAt,
+	)
+	var i PlayerContract
+	err := row.Scan(
+		&i.ID,
+		&i.PlayerID,
+		&i.SalaryCents,
+		&i.ReleaseClauseCents,
+		&i.StartsAt,
+		&i.EndsAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const findPlayersReadyToRetire = `-- name: FindPlayersReadyToRetire :many
-SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
+SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento, club_id, position, overall, potential, tier
 FROM players
 WHERE age >= $1
 `
@@ -155,6 +362,11 @@ func (q *Queries) FindPlayersReadyToRetire(ctx context.Context, age int32) ([]Pl
 			&i.Finalizacao,
 			&i.Dominio,
 			&i.Temperamento,
+			&i.ClubID,
+			&i.Position,
+			&i.Overall,
+			&i.Potential,
+			&i.Tier,
 		); err != nil {
 			return nil, err
 		}
@@ -169,8 +381,34 @@ func (q *Queries) FindPlayersReadyToRetire(ctx context.Context, age int32) ([]Pl
 	return items, nil
 }
 
+const getActivePlayerContract = `-- name: GetActivePlayerContract :one
+SELECT id, player_id, salary_cents, release_clause_cents, starts_at, ends_at, created_at, updated_at
+FROM player_contracts
+WHERE player_id = $1
+    AND starts_at <= NOW()
+    AND ends_at >= NOW()
+ORDER BY starts_at DESC
+LIMIT 1
+`
+
+func (q *Queries) GetActivePlayerContract(ctx context.Context, playerID uuid.UUID) (PlayerContract, error) {
+	row := q.db.QueryRowContext(ctx, getActivePlayerContract, playerID)
+	var i PlayerContract
+	err := row.Scan(
+		&i.ID,
+		&i.PlayerID,
+		&i.SalaryCents,
+		&i.ReleaseClauseCents,
+		&i.StartsAt,
+		&i.EndsAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getPlayer = `-- name: GetPlayer :one
-SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
+SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento, club_id, position, overall, potential, tier
 FROM players
 WHERE id = $1
 `
@@ -197,6 +435,87 @@ func (q *Queries) GetPlayer(ctx context.Context, id uuid.UUID) (Player, error) {
 		&i.Finalizacao,
 		&i.Dominio,
 		&i.Temperamento,
+		&i.ClubID,
+		&i.Position,
+		&i.Overall,
+		&i.Potential,
+		&i.Tier,
+	)
+	return i, err
+}
+
+const getPlayerByClubIDAndID = `-- name: GetPlayerByClubIDAndID :one
+SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento, club_id, position, overall, potential, tier
+FROM players
+WHERE club_id = $1
+    AND id = $2
+LIMIT 1
+`
+
+type GetPlayerByClubIDAndIDParams struct {
+	ClubID uuid.NullUUID
+	ID     uuid.UUID
+}
+
+func (q *Queries) GetPlayerByClubIDAndID(ctx context.Context, arg GetPlayerByClubIDAndIDParams) (Player, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerByClubIDAndID, arg.ClubID, arg.ID)
+	var i Player
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Age,
+		&i.Pace,
+		&i.Passing,
+		&i.Shooting,
+		&i.Altura,
+		&i.Peso,
+		&i.Impulso,
+		&i.Explosao,
+		&i.Fisico,
+		&i.FisicalStatus,
+		&i.Cabeceio,
+		&i.Cruzamento,
+		&i.Habilidade,
+		&i.Finalizacao,
+		&i.Dominio,
+		&i.Temperamento,
+		&i.ClubID,
+		&i.Position,
+		&i.Overall,
+		&i.Potential,
+		&i.Tier,
+	)
+	return i, err
+}
+
+const getPlayerPerformanceSummary = `-- name: GetPlayerPerformanceSummary :one
+SELECT
+        COUNT(*)::BIGINT AS games,
+        COALESCE(SUM(goals), 0)::BIGINT AS goals,
+        COALESCE(SUM(assists), 0)::BIGINT AS assists,
+        COALESCE(AVG(rating), 0)::NUMERIC(4,2) AS avg_rating,
+        COALESCE(SUM(minutes_played), 0)::BIGINT AS minutes_played
+FROM player_match_stats
+WHERE player_id = $1
+`
+
+type GetPlayerPerformanceSummaryRow struct {
+	Games         int64
+	Goals         int64
+	Assists       int64
+	AvgRating     string
+	MinutesPlayed int64
+}
+
+func (q *Queries) GetPlayerPerformanceSummary(ctx context.Context, playerID uuid.UUID) (GetPlayerPerformanceSummaryRow, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerPerformanceSummary, playerID)
+	var i GetPlayerPerformanceSummaryRow
+	err := row.Scan(
+		&i.Games,
+		&i.Goals,
+		&i.Assists,
+		&i.AvgRating,
+		&i.MinutesPlayed,
 	)
 	return i, err
 }
@@ -212,8 +531,100 @@ func (q *Queries) IncreasePlayerAge(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const listPlayerMatchStats = `-- name: ListPlayerMatchStats :many
+SELECT
+        pms.match_id,
+        pms.player_id,
+        pms.club_id,
+        pms.minutes_played,
+        pms.goals,
+        pms.assists,
+        pms.rating,
+        pms.passes_completed,
+        pms.shots,
+        pms.tackles,
+        pms.saves,
+        pms.created_at,
+        m.home_club_id,
+        m.away_club_id,
+        m.home_score,
+        m.away_score,
+        m.finished_at
+FROM player_match_stats pms
+JOIN "match" m ON m.id = pms.match_id
+WHERE pms.player_id = $1
+ORDER BY pms.created_at DESC
+LIMIT $2
+`
+
+type ListPlayerMatchStatsParams struct {
+	PlayerID uuid.UUID
+	Limit    int32
+}
+
+type ListPlayerMatchStatsRow struct {
+	MatchID         uuid.UUID
+	PlayerID        uuid.UUID
+	ClubID          uuid.UUID
+	MinutesPlayed   int16
+	Goals           int16
+	Assists         int16
+	Rating          string
+	PassesCompleted int16
+	Shots           int16
+	Tackles         int16
+	Saves           int16
+	CreatedAt       time.Time
+	HomeClubID      uuid.UUID
+	AwayClubID      uuid.UUID
+	HomeScore       int32
+	AwayScore       int32
+	FinishedAt      sql.NullTime
+}
+
+func (q *Queries) ListPlayerMatchStats(ctx context.Context, arg ListPlayerMatchStatsParams) ([]ListPlayerMatchStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPlayerMatchStats, arg.PlayerID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPlayerMatchStatsRow
+	for rows.Next() {
+		var i ListPlayerMatchStatsRow
+		if err := rows.Scan(
+			&i.MatchID,
+			&i.PlayerID,
+			&i.ClubID,
+			&i.MinutesPlayed,
+			&i.Goals,
+			&i.Assists,
+			&i.Rating,
+			&i.PassesCompleted,
+			&i.Shots,
+			&i.Tackles,
+			&i.Saves,
+			&i.CreatedAt,
+			&i.HomeClubID,
+			&i.AwayClubID,
+			&i.HomeScore,
+			&i.AwayScore,
+			&i.FinishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPlayers = `-- name: ListPlayers :many
-SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
+SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento, club_id, position, overall, potential, tier
 FROM players
 `
 
@@ -245,6 +656,90 @@ func (q *Queries) ListPlayers(ctx context.Context) ([]Player, error) {
 			&i.Finalizacao,
 			&i.Dominio,
 			&i.Temperamento,
+			&i.ClubID,
+			&i.Position,
+			&i.Overall,
+			&i.Potential,
+			&i.Tier,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPlayersByClubID = `-- name: ListPlayersByClubID :many
+SELECT
+        p.id,
+        p.club_id,
+        p.name,
+        p.age,
+        p.position,
+        p.overall,
+        p.potential,
+        p.pace,
+        p.passing,
+        p.shooting,
+        c.salary_cents,
+        c.ends_at
+FROM players p
+JOIN LATERAL (
+        SELECT salary_cents, ends_at
+        FROM player_contracts
+        WHERE player_id = p.id
+            AND starts_at <= NOW()
+            AND ends_at >= NOW()
+        ORDER BY starts_at DESC
+        LIMIT 1
+) c ON TRUE
+WHERE p.club_id = $1
+ORDER BY p.overall DESC, p.name ASC
+`
+
+type ListPlayersByClubIDRow struct {
+	ID          uuid.UUID
+	ClubID      uuid.NullUUID
+	Name        string
+	Age         int32
+	Position    string
+	Overall     int16
+	Potential   int16
+	Pace        int16
+	Passing     int16
+	Shooting    int16
+	SalaryCents int64
+	EndsAt      time.Time
+}
+
+func (q *Queries) ListPlayersByClubID(ctx context.Context, clubID uuid.NullUUID) ([]ListPlayersByClubIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPlayersByClubID, clubID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPlayersByClubIDRow
+	for rows.Next() {
+		var i ListPlayersByClubIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ClubID,
+			&i.Name,
+			&i.Age,
+			&i.Position,
+			&i.Overall,
+			&i.Potential,
+			&i.Pace,
+			&i.Passing,
+			&i.Shooting,
+			&i.SalaryCents,
+			&i.EndsAt,
 		); err != nil {
 			return nil, err
 		}
@@ -280,7 +775,7 @@ SET
     dominio = $17,
     temperamento = $18
 WHERE id = $1
-RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
+RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento, club_id, position, overall, potential, tier
 `
 
 type UpdatePlayerParams struct {
@@ -345,6 +840,11 @@ func (q *Queries) UpdatePlayer(ctx context.Context, arg UpdatePlayerParams) (Pla
 		&i.Finalizacao,
 		&i.Dominio,
 		&i.Temperamento,
+		&i.ClubID,
+		&i.Position,
+		&i.Overall,
+		&i.Potential,
+		&i.Tier,
 	)
 	return i, err
 }
@@ -368,7 +868,7 @@ SET
     dominio = $15,
     temperamento = $16
 WHERE id = $1
-RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento
+RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento, club_id, position, overall, potential, tier
 `
 
 type UpdatePlayerAttributesParams struct {
@@ -429,6 +929,11 @@ func (q *Queries) UpdatePlayerAttributes(ctx context.Context, arg UpdatePlayerAt
 		&i.Finalizacao,
 		&i.Dominio,
 		&i.Temperamento,
+		&i.ClubID,
+		&i.Position,
+		&i.Overall,
+		&i.Potential,
+		&i.Tier,
 	)
 	return i, err
 }

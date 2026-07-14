@@ -28,8 +28,14 @@ type AuthHandler struct {
 }
 
 type signUpRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	ManagerName   string `json:"manager_name"`
+	ClubName      string `json:"club_name"`
+	ClubShortName string `json:"club_short_name"`
+	Abbreviation  string `json:"abbreviation"`
+	Continent     string `json:"continent"`
+	Country       string `json:"country"`
 }
 
 type signInRequest struct {
@@ -51,8 +57,9 @@ type authLinks struct {
 }
 
 type meResponse struct {
-	ID    uuid.UUID `json:"id"`
-	Email string    `json:"email"`
+	ID          uuid.UUID `json:"id"`
+	Email       string    `json:"email"`
+	ManagerName string    `json:"manager_name"`
 }
 
 func NewAuthHandler(queries *repository.Queries, cfg config.Config) *AuthHandler {
@@ -89,6 +96,34 @@ func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.ManagerName = strings.TrimSpace(req.ManagerName)
+	req.ClubName = strings.TrimSpace(req.ClubName)
+	req.ClubShortName = strings.TrimSpace(req.ClubShortName)
+	req.Abbreviation = strings.ToUpper(strings.TrimSpace(req.Abbreviation))
+	req.Continent = strings.TrimSpace(req.Continent)
+	req.Country = strings.TrimSpace(req.Country)
+
+	if req.ManagerName == "" || req.ClubName == "" {
+		http.Error(w, "manager_name and club_name are required", http.StatusBadRequest)
+		return
+	}
+
+	if req.ClubShortName == "" {
+		req.ClubShortName = req.ClubName
+	}
+
+	if req.Abbreviation == "" {
+		req.Abbreviation = defaultAbbreviation(req.ClubName)
+	}
+
+	if req.Continent == "" {
+		req.Continent = "Europe"
+	}
+
+	if req.Country == "" {
+		req.Country = "Portugal"
+	}
+
 	_, err = h.queries.GetUserByEmail(r.Context(), email)
 	if err == nil {
 		http.Error(w, "email already registered", http.StatusConflict)
@@ -105,34 +140,63 @@ func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	verificationToken, err := generateToken(32)
-	if err != nil {
-		http.Error(w, "failed to generate verification token", http.StatusInternalServerError)
-		return
-	}
-
-	expiresAt := time.Now().Add(time.Duration(h.cfg.AuthVerifyTokenTTLMinutes) * time.Minute)
-	_, err = h.queries.CreateUser(r.Context(), repository.CreateUserParams{
+	newUser, err := h.queries.CreateUser(r.Context(), repository.CreateUserParams{
 		ID:                         uuid.New(),
 		Username:                   email,
 		PasswordHash:               string(hashedPassword),
-		Active:                     false,
-		VerificationToken:          sql.NullString{String: verificationToken, Valid: true},
-		VerificationTokenExpiresAt: sql.NullTime{Time: expiresAt, Valid: true},
+		Active:                     true,
+		VerificationToken:          sql.NullString{},
+		VerificationTokenExpiresAt: sql.NullTime{},
 	})
 	if err != nil {
 		http.Error(w, "failed to create user", http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.sendVerificationEmail(email, verificationToken); err != nil {
-		http.Error(w, "failed to send verification email", http.StatusInternalServerError)
+	_, err = h.queries.UpsertUserMeta(r.Context(), repository.UpsertUserMetaParams{
+		UserID:      newUser.ID,
+		FullName:    sql.NullString{String: req.ManagerName, Valid: true},
+		Country:     sql.NullString{String: req.Country, Valid: true},
+		SocialLinks: json.RawMessage(`{}`),
+		Metadata:    json.RawMessage(`{}`),
+	})
+	if err != nil {
+		http.Error(w, "failed to create user profile", http.StatusInternalServerError)
+		return
+	}
+
+	club, err := h.queries.CreateClub(r.Context(), repository.CreateClubParams{
+		ID:           uuid.New(),
+		UserID:       newUser.ID,
+		Name:         req.ClubName,
+		ShortName:    sql.NullString{String: req.ClubShortName, Valid: true},
+		Abbreviation: sql.NullString{String: req.Abbreviation, Valid: true},
+		Continent:    sql.NullString{String: req.Continent, Valid: true},
+		Country:      sql.NullString{String: req.Country, Valid: true},
+	})
+	if err != nil {
+		http.Error(w, "failed to create club", http.StatusInternalServerError)
+		return
+	}
+
+	if err := bootstrapStarterSquad(r.Context(), h.queries, club.ID); err != nil {
+		http.Error(w, "failed to bootstrap squad", http.StatusInternalServerError)
+		return
+	}
+
+	token, err := h.issueToken(newUser.ID, newUser.Username)
+	if err != nil {
+		http.Error(w, "failed to create token", http.StatusInternalServerError)
 		return
 	}
 
 	respondJSON(w, http.StatusCreated, map[string]any{
-		"message": "signup successful, please verify your email before signing in",
-		"_links":  h.buildAuthLinks(),
+		"token": token,
+		"club": map[string]any{
+			"id":   club.ID,
+			"name": club.Name,
+		},
+		"_links": h.buildAuthLinks(),
 	})
 }
 
@@ -167,6 +231,11 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	if _, _, err := ensureUserHasClubAndSquad(r.Context(), h.queries, user.ID, user.Username); err != nil {
+		http.Error(w, "failed to ensure club", http.StatusInternalServerError)
 		return
 	}
 
@@ -213,7 +282,12 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, meResponse{ID: user.ID, Email: user.Username})
+	managerName := ""
+	if meta, err := h.queries.GetUserMetaByUserID(r.Context(), user.ID); err == nil && meta.FullName.Valid {
+		managerName = meta.FullName.String
+	}
+
+	respondJSON(w, http.StatusOK, meResponse{ID: user.ID, Email: user.Username, ManagerName: managerName})
 }
 
 func (h *AuthHandler) issueToken(userID uuid.UUID, email string) (string, error) {
@@ -316,4 +390,28 @@ func respondJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func defaultAbbreviation(clubName string) string {
+	parts := strings.Fields(strings.ToUpper(strings.TrimSpace(clubName)))
+	if len(parts) == 0 {
+		return "CLB"
+	}
+
+	abbr := ""
+	for _, p := range parts {
+		if p == "" {
+			continue
+		}
+		abbr += string(p[0])
+		if len(abbr) == 3 {
+			return abbr
+		}
+	}
+
+	for len(abbr) < 3 {
+		abbr += "X"
+	}
+
+	return abbr
 }

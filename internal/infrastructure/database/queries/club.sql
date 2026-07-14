@@ -3,6 +3,13 @@ SELECT *
 FROM clubs
 WHERE user_id = $1;
 
+-- name: GetUserClubByID :one
+SELECT *
+FROM clubs
+WHERE user_id = $1
+	AND id = $2
+LIMIT 1;
+
 -- name: GetClubByName :one
 SELECT *
 FROM clubs

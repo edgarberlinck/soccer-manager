@@ -80,6 +80,37 @@ type Player struct {
 	Finalizacao   int16
 	Dominio       int16
 	Temperamento  int16
+	ClubID        uuid.NullUUID
+	Position      string
+	Overall       int16
+	Potential     int16
+	Tier          string
+}
+
+type PlayerContract struct {
+	ID                 uuid.UUID
+	PlayerID           uuid.UUID
+	SalaryCents        int64
+	ReleaseClauseCents sql.NullInt64
+	StartsAt           time.Time
+	EndsAt             time.Time
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+}
+
+type PlayerMatchStat struct {
+	MatchID         uuid.UUID
+	PlayerID        uuid.UUID
+	ClubID          uuid.UUID
+	MinutesPlayed   int16
+	Goals           int16
+	Assists         int16
+	Rating          string
+	PassesCompleted int16
+	Shots           int16
+	Tackles         int16
+	Saves           int16
+	CreatedAt       time.Time
 }
 
 type User struct {
