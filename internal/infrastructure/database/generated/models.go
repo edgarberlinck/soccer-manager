@@ -123,6 +123,8 @@ type User struct {
 	VerificationTokenExpiresAt sql.NullTime
 	CreatedAt                  time.Time
 	UpdatedAt                  time.Time
+	IsBot                      bool
+	BotStrategy                sql.NullString
 }
 
 type UserMetum struct {

@@ -520,6 +520,59 @@ func (q *Queries) GetPlayerPerformanceSummary(ctx context.Context, playerID uuid
 	return i, err
 }
 
+const getPlayersByClubId = `-- name: GetPlayersByClubId :many
+SELECT id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento, club_id, position, overall, potential, tier
+FROM players
+WHERE club_id = $1
+`
+
+func (q *Queries) GetPlayersByClubId(ctx context.Context, clubID uuid.NullUUID) ([]Player, error) {
+	rows, err := q.db.QueryContext(ctx, getPlayersByClubId, clubID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Player
+	for rows.Next() {
+		var i Player
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Age,
+			&i.Pace,
+			&i.Passing,
+			&i.Shooting,
+			&i.Altura,
+			&i.Peso,
+			&i.Impulso,
+			&i.Explosao,
+			&i.Fisico,
+			&i.FisicalStatus,
+			&i.Cabeceio,
+			&i.Cruzamento,
+			&i.Habilidade,
+			&i.Finalizacao,
+			&i.Dominio,
+			&i.Temperamento,
+			&i.ClubID,
+			&i.Position,
+			&i.Overall,
+			&i.Potential,
+			&i.Tier,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const increasePlayerAge = `-- name: IncreasePlayerAge :exec
 UPDATE players
 SET age = age + 1
@@ -909,6 +962,49 @@ func (q *Queries) UpdatePlayerAttributes(ctx context.Context, arg UpdatePlayerAt
 		arg.Dominio,
 		arg.Temperamento,
 	)
+	var i Player
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Age,
+		&i.Pace,
+		&i.Passing,
+		&i.Shooting,
+		&i.Altura,
+		&i.Peso,
+		&i.Impulso,
+		&i.Explosao,
+		&i.Fisico,
+		&i.FisicalStatus,
+		&i.Cabeceio,
+		&i.Cruzamento,
+		&i.Habilidade,
+		&i.Finalizacao,
+		&i.Dominio,
+		&i.Temperamento,
+		&i.ClubID,
+		&i.Position,
+		&i.Overall,
+		&i.Potential,
+		&i.Tier,
+	)
+	return i, err
+}
+
+const updatePlayerPhysicalStatus = `-- name: UpdatePlayerPhysicalStatus :one
+UPDATE players
+SET fisical_status = $2
+WHERE id = $1
+RETURNING id, name, age, pace, passing, shooting, altura, peso, impulso, explosao, fisico, fisical_status, cabeceio, cruzamento, habilidade, finalizacao, dominio, temperamento, club_id, position, overall, potential, tier
+`
+
+type UpdatePlayerPhysicalStatusParams struct {
+	ID            uuid.UUID
+	FisicalStatus int16
+}
+
+func (q *Queries) UpdatePlayerPhysicalStatus(ctx context.Context, arg UpdatePlayerPhysicalStatusParams) (Player, error) {
+	row := q.db.QueryRowContext(ctx, updatePlayerPhysicalStatus, arg.ID, arg.FisicalStatus)
 	var i Player
 	err := row.Scan(
 		&i.ID,

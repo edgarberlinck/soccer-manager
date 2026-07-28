@@ -258,3 +258,14 @@ JOIN "match" m ON m.id = pms.match_id
 WHERE pms.player_id = $1
 ORDER BY pms.created_at DESC
 LIMIT $2;
+
+-- name: GetPlayersByClubId :many
+SELECT *
+FROM players
+WHERE club_id = $1;
+
+-- name: UpdatePlayerPhysicalStatus :one
+UPDATE players
+SET fisical_status = $2
+WHERE id = $1
+RETURNING *;

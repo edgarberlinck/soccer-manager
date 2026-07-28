@@ -87,3 +87,30 @@ DO UPDATE SET
     loser_club_id = EXCLUDED.loser_club_id,
     is_draw = EXCLUDED.is_draw
 RETURNING match_id, home_team_score, away_team_score, winner_club_id, loser_club_id, is_draw, created_at;
+
+-- name: GetRandomBotClub :one
+SELECT c.*
+FROM clubs c
+INNER JOIN users u ON c.user_id = u.id
+WHERE u.is_bot = true
+ORDER BY RANDOM()
+LIMIT 1;
+
+-- name: GetPendingMatches :many
+SELECT *
+FROM "match"
+WHERE status = 'pending'
+ORDER BY created_at ASC
+LIMIT $1;
+
+-- name: GetClubMatches :many
+SELECT *
+FROM "match"
+WHERE (home_club_id = $1 OR away_club_id = $1)
+ORDER BY created_at ASC;
+
+-- name: GetSeasonMatches :many
+SELECT *
+FROM "match"
+WHERE created_at >= $1 AND created_at <= $2
+ORDER BY created_at ASC;

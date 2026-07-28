@@ -16,6 +16,7 @@ func NewRouter(queries *repository.Queries, cfg config.Config) *chi.Mux {
 
 	clubHandler := NewClubHandler(queries)
 	authHandler := NewAuthHandler(queries, cfg)
+	calendarHandler := NewCalendarHandler(queries)
 
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware)
@@ -35,6 +36,11 @@ func NewRouter(queries *repository.Queries, cfg config.Config) *chi.Mux {
 			r.Post("/{clubID}/ensure-squad", clubHandler.EnsureClubSquad)
 			r.Get("/{clubID}/players", clubHandler.ListClubPlayers)
 			r.Get("/{clubID}/players/{playerID}", clubHandler.GetClubPlayerDetail)
+		})
+
+		r.Route("/calendar", func(r chi.Router) {
+			r.Get("/season", calendarHandler.GetSeasonCalendar)
+			r.Get("/clubs/{clubId}", calendarHandler.GetClubCalendar)
 		})
 	})
 

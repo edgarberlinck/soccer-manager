@@ -8,6 +8,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -134,6 +135,167 @@ WHERE id = $1
 func (q *Queries) FinishMatch(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, finishMatch, id)
 	return err
+}
+
+const getClubMatches = `-- name: GetClubMatches :many
+SELECT id, home_club_id, away_club_id, championship_id, status, current_tick, random_seed, home_score, away_score, finished_at, created_at, updated_at
+FROM "match"
+WHERE (home_club_id = $1 OR away_club_id = $1)
+ORDER BY created_at ASC
+`
+
+func (q *Queries) GetClubMatches(ctx context.Context, homeClubID uuid.UUID) ([]Match, error) {
+	rows, err := q.db.QueryContext(ctx, getClubMatches, homeClubID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Match
+	for rows.Next() {
+		var i Match
+		if err := rows.Scan(
+			&i.ID,
+			&i.HomeClubID,
+			&i.AwayClubID,
+			&i.ChampionshipID,
+			&i.Status,
+			&i.CurrentTick,
+			&i.RandomSeed,
+			&i.HomeScore,
+			&i.AwayScore,
+			&i.FinishedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPendingMatches = `-- name: GetPendingMatches :many
+SELECT id, home_club_id, away_club_id, championship_id, status, current_tick, random_seed, home_score, away_score, finished_at, created_at, updated_at
+FROM "match"
+WHERE status = 'pending'
+ORDER BY created_at ASC
+LIMIT $1
+`
+
+func (q *Queries) GetPendingMatches(ctx context.Context, limit int32) ([]Match, error) {
+	rows, err := q.db.QueryContext(ctx, getPendingMatches, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Match
+	for rows.Next() {
+		var i Match
+		if err := rows.Scan(
+			&i.ID,
+			&i.HomeClubID,
+			&i.AwayClubID,
+			&i.ChampionshipID,
+			&i.Status,
+			&i.CurrentTick,
+			&i.RandomSeed,
+			&i.HomeScore,
+			&i.AwayScore,
+			&i.FinishedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRandomBotClub = `-- name: GetRandomBotClub :one
+SELECT c.id, c.user_id, c.name, c.short_name, c.abbreviation, c.continent, c.country, c.created_at, c.updated_at
+FROM clubs c
+INNER JOIN users u ON c.user_id = u.id
+WHERE u.is_bot = true
+ORDER BY RANDOM()
+LIMIT 1
+`
+
+func (q *Queries) GetRandomBotClub(ctx context.Context) (Club, error) {
+	row := q.db.QueryRowContext(ctx, getRandomBotClub)
+	var i Club
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.ShortName,
+		&i.Abbreviation,
+		&i.Continent,
+		&i.Country,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getSeasonMatches = `-- name: GetSeasonMatches :many
+SELECT id, home_club_id, away_club_id, championship_id, status, current_tick, random_seed, home_score, away_score, finished_at, created_at, updated_at
+FROM "match"
+WHERE created_at >= $1 AND created_at <= $2
+ORDER BY created_at ASC
+`
+
+type GetSeasonMatchesParams struct {
+	CreatedAt   time.Time
+	CreatedAt_2 time.Time
+}
+
+func (q *Queries) GetSeasonMatches(ctx context.Context, arg GetSeasonMatchesParams) ([]Match, error) {
+	rows, err := q.db.QueryContext(ctx, getSeasonMatches, arg.CreatedAt, arg.CreatedAt_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Match
+	for rows.Next() {
+		var i Match
+		if err := rows.Scan(
+			&i.ID,
+			&i.HomeClubID,
+			&i.AwayClubID,
+			&i.ChampionshipID,
+			&i.Status,
+			&i.CurrentTick,
+			&i.RandomSeed,
+			&i.HomeScore,
+			&i.AwayScore,
+			&i.FinishedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listInProgressMatches = `-- name: ListInProgressMatches :many

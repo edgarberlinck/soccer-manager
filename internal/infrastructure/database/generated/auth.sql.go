@@ -8,6 +8,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -41,7 +42,19 @@ type CreateUserParams struct {
 	VerificationTokenExpiresAt sql.NullTime
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+type CreateUserRow struct {
+	ID                         uuid.UUID
+	Username                   string
+	PasswordHash               string
+	Active                     bool
+	EmailVerifiedAt            sql.NullTime
+	VerificationToken          sql.NullString
+	VerificationTokenExpiresAt sql.NullTime
+	CreatedAt                  time.Time
+	UpdatedAt                  time.Time
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.ID,
 		arg.Username,
@@ -50,7 +63,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.VerificationToken,
 		arg.VerificationTokenExpiresAt,
 	)
-	var i User
+	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
@@ -71,9 +84,21 @@ FROM users
 WHERE username = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, username string) (User, error) {
+type GetUserByEmailRow struct {
+	ID                         uuid.UUID
+	Username                   string
+	PasswordHash               string
+	Active                     bool
+	EmailVerifiedAt            sql.NullTime
+	VerificationToken          sql.NullString
+	VerificationTokenExpiresAt sql.NullTime
+	CreatedAt                  time.Time
+	UpdatedAt                  time.Time
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, username string) (GetUserByEmailRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, username)
-	var i User
+	var i GetUserByEmailRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
@@ -94,9 +119,21 @@ FROM users
 WHERE id = $1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
+type GetUserByIDRow struct {
+	ID                         uuid.UUID
+	Username                   string
+	PasswordHash               string
+	Active                     bool
+	EmailVerifiedAt            sql.NullTime
+	VerificationToken          sql.NullString
+	VerificationTokenExpiresAt sql.NullTime
+	CreatedAt                  time.Time
+	UpdatedAt                  time.Time
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByID, id)
-	var i User
+	var i GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
@@ -124,9 +161,21 @@ WHERE verification_token = $1
 RETURNING id, username, password_hash, active, email_verified_at, verification_token, verification_token_expires_at, created_at, updated_at
 `
 
-func (q *Queries) VerifyUserByToken(ctx context.Context, verificationToken sql.NullString) (User, error) {
+type VerifyUserByTokenRow struct {
+	ID                         uuid.UUID
+	Username                   string
+	PasswordHash               string
+	Active                     bool
+	EmailVerifiedAt            sql.NullTime
+	VerificationToken          sql.NullString
+	VerificationTokenExpiresAt sql.NullTime
+	CreatedAt                  time.Time
+	UpdatedAt                  time.Time
+}
+
+func (q *Queries) VerifyUserByToken(ctx context.Context, verificationToken sql.NullString) (VerifyUserByTokenRow, error) {
 	row := q.db.QueryRowContext(ctx, verifyUserByToken, verificationToken)
-	var i User
+	var i VerifyUserByTokenRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
